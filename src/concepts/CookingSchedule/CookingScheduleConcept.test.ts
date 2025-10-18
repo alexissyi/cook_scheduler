@@ -10,9 +10,10 @@ import {
   Availability,
   CookingSchedule,
   Preference,
-  User,
 } from "./CookingScheduleConcept.ts";
+import { User } from "@utils/types.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
+import { TopologyDescription } from "mongodb";
 
 /**
  * Test case 1: Manual scheduling

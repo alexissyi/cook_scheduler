@@ -6,9 +6,7 @@
 
 **state**
 
-a Question with
-
-&ensp; a string QuestionText
+a string QuestionText
 
 a set of Response Responses with
 
@@ -38,13 +36,13 @@ deleteResponse(user: User)
 
 **effect** removes the Response associated with user from Responses
 
-lockFormQuestion()
+lock()
 
 **requires** Open is True
 
 **effect** sets Open to False
 
-openFormQuestion()
+unlock()
 
 **requires** Open is False and questionText has been set to a nonempty string
 

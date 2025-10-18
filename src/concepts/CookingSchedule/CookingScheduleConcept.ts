@@ -1,27 +1,14 @@
 import { assert } from "jsr:@std/assert/assert";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
-
+import { User } from "@utils/types.ts";
+import { getMonth, getYear } from "@utils/utility-functions.ts";
 // all dates represented in YYYY-MM-DD string format
-
-function getMonth(dateString: string): number {
-  const monthString: string = dateString.slice(5, 7);
-  return Number(monthString);
-}
-
-function getYear(dateString: string): number {
-  const yearString: string = dateString.slice(0, 4);
-  return Number(yearString);
-}
 
 export interface JSONAssignment {
   leadKerb: string;
   assistantKerb?: string;
   date: string;
-}
-
-export interface User {
-  kerb: string;
 }
 
 export interface Assignment {

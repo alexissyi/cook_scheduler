@@ -12,7 +12,9 @@ a Year
 
 a set of Dates CookingDates
 
-a set of User Cooks
+a set of User Cooks with 
+
+&ensp; a Kerb
 
 a set of Availability Availabilities with
 
@@ -43,8 +45,6 @@ a set of Assignment Assignments with
 **invariants**
 
 all dates in CookingDates are in Month in Year
-    
-every Preference in Preferences has a nonnegative, integer maxCookingDays
 
 every Assignment in Assignments has a Date in CookingDates and a Lead in Cooks; if it has an Assistant, the Assistant is in Cooks
 
