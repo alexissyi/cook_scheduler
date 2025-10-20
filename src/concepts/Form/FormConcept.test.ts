@@ -78,8 +78,8 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
 
     const responseContent1 = 45;
     await form.submitResponse({
-      question: question1,
-      user: user2,
+      question: question2,
+      user: user1,
       responseContent: responseContent1,
     }) as Response;
 
@@ -120,7 +120,7 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
 });
 
 Deno.test("Action: deleteResponse and deleteQuestion", async () => {
-  console.log("\n🧪 TEST CASE 2: Operational principle, more complex");
+  console.log("\n🧪 TEST CASE 3: Action: deleteResponse and deleteQuestion");
   console.log("==================================");
   const [db, client] = await testDb();
   try {
@@ -147,11 +147,13 @@ Deno.test("Action: deleteResponse and deleteQuestion", async () => {
       responseContent: "Bob",
     }) as Response;
 
+    await form.lock();
+
+    await form.deleteResponse({ user: user1, question: question1 });
+
     const responses = await form._getResponses({ question: question1 }) as Set<
       Response
     >;
-
-    await form.deleteResponse({ user: user1, question: question1 });
 
     assert(!responses.has(response));
 

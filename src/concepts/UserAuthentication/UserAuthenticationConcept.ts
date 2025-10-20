@@ -8,7 +8,7 @@ import { freshID } from "@utils/database.ts";
 // Collection prefix to ensure namespace separation
 const PREFIX = "UserAuthentication" + ".";
 
-type User = ID;
+export type User = ID;
 /**
  * State: A set of Users with a kerb and a password.
  */
@@ -23,8 +23,8 @@ interface UserDoc {
  */
 interface FoodStudDoc {
   _id: ID;
-  produceFoodStud: User;
-  costcoFoodStud: User;
+  produceFoodStud: User | null;
+  costcoFoodStud: User | null;
 }
 
 interface PasswordDoc {
@@ -35,7 +35,7 @@ interface PasswordDoc {
  * @concept UserAuthentication
  * @purpose to verify whether certain users are allowed to perform certain actions, like editing the cooking assignments
  */
-export default class UserAuthentication {
+export class UserAuthentication {
   private foodStuds: Collection<FoodStudDoc>;
   private users: Collection<UserDoc>;
   private passwords: Collection<PasswordDoc>;
@@ -44,6 +44,14 @@ export default class UserAuthentication {
     this.foodStuds = this.db.collection(PREFIX + "FoodStuds");
     this.users = this.db.collection(PREFIX + "Users");
     this.passwords = this.db.collection(PREFIX + "Passwords");
+  }
+
+  async initialize() {
+    await this.foodStuds.insertOne({
+      _id: freshID(),
+      produceFoodStud: null,
+      costcoFoodStud: null,
+    });
   }
 
   async uploadUser(
@@ -61,11 +69,11 @@ export default class UserAuthentication {
 
     const passwordID = freshID();
 
-    this.passwords.insertOne({ _id: passwordID, password: password });
+    await this.passwords.insertOne({ _id: passwordID, password: password });
 
     const userID = freshID();
     const user: UserDoc = { _id: userID, kerb: kerb, password: password };
-    this.users.insertOne(user);
+    await this.users.insertOne(user);
     return { user: userID };
   }
 
@@ -94,7 +102,9 @@ export default class UserAuthentication {
       password: newPassword,
     });
     assert(matchingPassword === null);
-    await this.users.updateOne({ _id: user }, { password: newPassword });
+    await this.users.updateOne({ _id: user }, {
+      $set: { password: newPassword },
+    });
   }
 
   async login(
@@ -111,7 +121,9 @@ export default class UserAuthentication {
   ): Promise<void | { error: string }> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc);
-    this.foodStuds.updateOne({}, { produceFoodStud: userDoc._id });
+    await this.foodStuds.updateOne({}, {
+      $set: { produceFoodStud: userDoc._id },
+    });
   }
 
   async setCostcoFoodStud(
@@ -119,7 +131,9 @@ export default class UserAuthentication {
   ): Promise<void | { error: string }> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc);
-    this.foodStuds.updateOne({}, { costcoFoodStud: userDoc._id });
+    await this.foodStuds.updateOne({}, {
+      $set: { costcoFoodStud: userDoc._id },
+    });
   }
 
   async verifyFoodStud(
@@ -145,5 +159,36 @@ export default class UserAuthentication {
       _id: actingUser,
     });
     assert(matchingActingUser);
+  }
+
+  async _getCostcoFoodStudKerb(): Promise<string | { error: string }> {
+    const foodStuds = await this.foodStuds.findOne({});
+    assertExists(foodStuds, "foodstuds not set");
+    const costcoFoodStud = foodStuds.costcoFoodStud;
+    assertExists(costcoFoodStud);
+    const doc = await this.users.findOne({ _id: costcoFoodStud });
+    assertExists(doc);
+    return doc.kerb;
+  }
+
+  async _getProduceFoodStudKerb(): Promise<string | { error: string }> {
+    const foodStuds = await this.foodStuds.findOne({});
+    assertExists(foodStuds, "foodstuds not set");
+    const produceFoodStud = foodStuds.produceFoodStud;
+    assertExists(produceFoodStud);
+    const doc = await this.users.findOne({ _id: produceFoodStud });
+    assertExists(doc);
+    return doc.kerb;
+  }
+
+  async _getUsers(): Promise<Set<User> | { error: string }> {
+    const users = await this.users.find().toArray();
+    const output: Set<User> = new Set();
+
+    users.forEach((userDoc) => {
+      output.add(userDoc._id);
+    });
+
+    return output;
   }
 }

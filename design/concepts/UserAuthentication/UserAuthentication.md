@@ -2,7 +2,7 @@
 
 **purpose** to verify whether certain users are allowed to perform certain actions, like editing the cooking assignments
 
-**principle** two users are designated foodstuds; a user must be verified as a foodstud before generating cooking assignments or editing the cooking assignments; users are verified before editing user preferences or availability
+**principle** users are uploaded with a kerb and password; two users are designated foodstuds; a user must be verified as a foodstud before generating cooking assignments or editing the cooking assignments; users are verified before editing user preferences or availability
 
 **state**
 
@@ -71,3 +71,23 @@ verifyUser(actingUser: User, targetUser: User):
 **requires** actingUser is equal to targetUser, both are in Users
 
 **effect** nothing
+
+**queries**
+
+_getCostcoFoodStudKerb(): String
+
+**requires** CostcoFoodStud is set
+
+**effect** returns kerb of CostcoFoodStud
+
+_getProduceFoodStudKerb(): String
+
+**requires** ProduceFoodStud is set
+
+**effect** returns kerb of ProduceFoodStud
+
+_getUsers(): Set of User
+
+**requires** nothing
+
+**effect** returns Users

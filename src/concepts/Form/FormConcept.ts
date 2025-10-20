@@ -3,9 +3,7 @@ import { assert } from "jsr:@std/assert/assert";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
 import { Collection, Db } from "npm:mongodb";
 import { freshID } from "@utils/database.ts";
-import UserAuthentication from "../UserAuthentication/UserAuthenticationConcept.ts";
 
-// Collection prefix to ensure namespace separation
 const PREFIX = "Form" + ".";
 
 export type User = ID;
@@ -93,8 +91,8 @@ export class Form {
     { user, question }: { user: User; question: Question },
   ): Promise<void | { error: string }> {
     const openDoc = await this.open.findOne({});
-    assertExists(openDoc);
-    assert(!openDoc.open);
+    assertExists(openDoc, "form has not been initalized");
+    assert(!openDoc.open, "form is still open");
     const matchingResponse = await this.responses.findOne({
       user: user,
       question: question,
@@ -107,24 +105,24 @@ export class Form {
     { question }: { question: Question },
   ): Promise<void | { error: string }> {
     const matchingQuestion = await this.questions.findOne({ _id: question });
-    assertExists(matchingQuestion);
+    assertExists(matchingQuestion, "question does not exist");
     const response = await this.responses.findOne({ question: question });
-    assert(response === null);
+    assert(response === null, "question has responses, cannot be deleted");
     await this.questions.deleteOne({ _id: question });
   }
 
   async lock(): Promise<void | { error: string }> {
     const openDoc = await this.open.findOne({});
-    assertExists(openDoc);
-    assert(openDoc.open);
+    assertExists(openDoc, "form has not been initialized");
+    assert(openDoc.open, "form is already locked");
 
     await this.open.updateOne({}, { $set: { open: false } });
   }
 
   async unlock(): Promise<void | { error: string }> {
     const openDoc = await this.open.findOne({});
-    assertExists(openDoc);
-    assert(!openDoc.open);
+    assertExists(openDoc, "form has not been initialized");
+    assert(!openDoc.open, "form is open already");
 
     await this.open.updateOne({}, { $set: { open: true } });
   }
@@ -136,13 +134,13 @@ export class Form {
       user: user,
       question: question,
     });
-    assertExists(responseDoc);
+    assertExists(responseDoc, "response does not exist");
     return responseDoc.responseContent;
   }
 
   async _isOpen(): Promise<boolean | { error: string }> {
     const openDoc = await this.open.findOne();
-    assertExists(openDoc);
+    assertExists(openDoc, "form has not been initialized");
     return openDoc.open;
   }
 
@@ -150,7 +148,7 @@ export class Form {
     { question }: { question: Question },
   ): Promise<Set<Response> | { error: string }> {
     const questionDoc = await this.questions.findOne({ _id: question });
-    assertExists(questionDoc);
+    assertExists(questionDoc, "question does not exist");
     const responses = await this.responses.find({ question: question })
       .toArray();
     const output: Set<Response> = new Set();

@@ -5,8 +5,6 @@ import { GeminiLLM } from "../../utils/gemini-llm.ts";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
 import { getDay, getMonth, getYear } from "@utils/utility-functions.ts";
 import { ID } from "@utils/types.ts";
-import UserAuthentication from "../UserAuthentication/UserAuthenticationConcept.ts";
-
 // all dates represented in YYYY-MM-DD string format
 
 export type User = ID;
