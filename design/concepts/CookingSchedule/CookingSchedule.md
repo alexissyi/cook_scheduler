@@ -6,11 +6,15 @@
 
 **state** 
 
-a Month
+a set of Period Periods with 
 
-a Year
+&ensp; a Year
 
-a set of Dates CookingDates
+&ensp; a Month
+
+&ensp; a boolean Current
+
+a set of Date CookingDates
 
 a set of User Cooks with 
 
@@ -20,11 +24,13 @@ a set of Availability Availabilities with
 
 &ensp; a User
 
-&ensp; a set of Dates
+&ensp; a Date
 
 a set of Preference Preferences with
 
 &ensp; a User
+
+&ensp; a Period
     
 &ensp; a boolean CanSolo
     
@@ -38,45 +44,47 @@ a set of Assignment Assignments with
     
 &ensp; a Date
     
-&ensp; a Lead
+&ensp; a User Lead
     
-&ensp; an optional Assistant
+&ensp; an optional User Assistant
 
 **invariants**
 
-all dates in CookingDates are in Month in Year
+all dates in CookingDates are within some Period in Periods
 
 every Assignment in Assignments has a Date in CookingDates and a Lead in Cooks; if it has an Assistant, the Assistant is in Cooks
 
+at most one Period is current
+
 **actions**    
 
-addCook(user: User):
+addCook(kerb: string): User
 
-**requires** no User is in Cooks with the same kerb as user
+**requires** no User in Cooks has this kerb
 
-**effect** adds user to Cooks
+**effect** creates a new User with this kerb, adds it to Cooks and returns it
 
 removeCook(user: User):
 
-**requires** user is in Cooks
+**requires** user is in Cooks and no Assignment is associated with user
         
-**effect** removes user and any associated Preference, Availability or Assignments
+**effect** removes user and any associated Preference or Availability
 
-setMonth(month: number):
+addPeriod(month: Month, year: Year, current: boolean): Period
 
-**requires** month is an integer in [1, 12] and no assignments exist that have a date outside of this month
+**requires** nothing
 
-**effect** sets Month to month
+**effect**  creates a new Period with month, year and current; if current is True, marks all other Periods as not current (current = False), returns new Period
 
-setYear(year: number):
+setCurrentPeriod(month: Month, year: Year)
 
-**requires** year is a nonnegative integer and no assignments exist that have a date outside of this year
+**requires** there is a Period in Periods with month and year
 
-**effect** sets Year to year
+**effect** marks that corresponding Period as current, marks all other Periods as not current
 
 addCookingDate(date: Date):
 
-**requires** date is not in CookingDates and date is in Month
+**requires** date is not in CookingDates and date is in a Period in Periods
 
 **effect** adds date to CookingDates
 
@@ -104,33 +112,59 @@ removeAssignment(date: Date)
 
 **effect** removes this Assignment from the set of Assignments
 
-upload(preference: Preference)
+uploadPreference(user: User, period: Period, canSolo: boolean, canLead: boolean, canAssist: boolean, maxCookingDays: boolean)
 
-**requires** the User in preference is in Cooks
+**requires** user is in Cooks, period is in Periods, maxCookingDays is a nonnegative integer
 
-**effect** adds preference to Preferences or updates Preferences if there is already a preference for the user, removes all incompatible Assignments
+**effect** creates a new Preference with these fields and adds it to Preferences, or updates Preferences if there is already a preference for user and period, removes all incompatible Assignments
 
-upload(availability: Availability)
+addAvailability(user: User, date: Date)
 
-**requires** the User in availability is in Cooks and all dates in availability are in CookingDates
+**requires** user is in Cooks and date is in CookingDates
 
 **effect** adds availability to Availabilities or updates Availabilities if there is already a availability for the user, removes all incompatible Assignments
 
+removeAvailability(user: User, date: Date)
+
+**requires** user is in Cooks and there is an Availability with this user and date in Availabilities
+
+**effect** removes corresponding Availability from Availabilities and removes all incompatible Assignments
+
 async generateAssignments()
 
-**requires** the set of Users for both Availabilities and Preferences are subsets of Cooks and no existing Assignments violate those Availabilities and Preferences
+**requires**  no existing Assignments violate Availabilities and Preferences and there is exactly one Period with current set to True
 
-**effect** generates an assignment of Users to the CookingDates via an algorithm that violates no constraints in Availabilities or Preferences and satisfies all prior existing Assignments
+**effect** generates an assignment of Users to the CookingDates in the current Period via an algorithm that violates no constraints in Availabilities or Preferences and satisfies all prior existing Assignments
 
 async generateAssignmentsWithLLM()
 
-**requires** the set of Users for both Availabilities and Preferences are subsets of Cooks and no existing Assignments violate those Availabilities and Preferences
+**requires** no existing Assignments violate Availabilities and Preferences and there is exactly one Period with current set to True
 
 **effect** generates an assignment of Users to the CookingDates with an LLM that violates no constraints in Availabilities or Preferences and satisfies all prior existing Assignments
 
-validate(): boolean
+**queries**
 
-**requires** no constraints in Preferences or Availabilities are violated across the Assignments
+_getCooks(period: Period): Set of User
 
-**effect** returns True 
+**requires** period is in Periods
+
+**effect** returns Users associated with period
+
+_getCookingDates(period: Period): Set of Date
+
+**requires** period is in Periods
+
+**effect** returns CookingDates associated with period
+
+_getCurrentPeriod(): Period
+
+**requires** there exists a current Period in Periods
+
+**effect** returns the Period where current is True
+
+_getAssignments(period: Period): Set of Assignments
+
+**requires** period is in Periods
+
+**effect** returns the Assignments for period
     

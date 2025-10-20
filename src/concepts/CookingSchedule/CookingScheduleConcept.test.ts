@@ -3,390 +3,463 @@
  *
  * Demonstrates both manual scheduling and LLM-assisted scheduling
  */
-import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
-import { testDb } from "@utils/database.ts";
 import {
-  Assignment,
-  Availability,
-  CookingSchedule,
-  Preference,
-} from "./CookingScheduleConcept.ts";
-import { User } from "@utils/types.ts";
+  assert,
+  assertEquals,
+  assertExists,
+  assertNotEquals,
+} from "jsr:@std/assert";
+import { testDb } from "@utils/database.ts";
+import { CookingSchedule, Period, User } from "./CookingScheduleConcept.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
-import { TopologyDescription } from "mongodb";
+
+import { ID } from "@utils/types.ts";
+import { ClientEncryption } from "mongodb";
 
 /**
  * Test case 1: Manual scheduling
  * Demonstrates adding cooks, preferences, and availabilities and manually assigning them to time slots
  */
-Deno.test("Action: users upload availability and preferences, manually assign cooks", async () => {
+Deno.test("Operational principle: users upload availability and preferences, can manually assign cooks", async () => {
   console.log("\n🧪 TEST CASE 1: Manual Scheduling");
   console.log("==================================");
+  const [db, client] = await testDb();
 
-  const scheduler = new CookingSchedule();
+  try {
+    const scheduler = new CookingSchedule(db);
+    const month: number = 10;
+    const year: number = 2025;
+    const period = await scheduler.addPeriod({
+      month,
+      year,
+      current: true,
+    }) as Period;
 
-  const month: number = 10;
-  const year: number = 2025;
-  scheduler.setMonth(month);
-  scheduler.setYear(year);
+    const retrievedPeriod = await scheduler._getCurrentPeriod() as Period;
+    assertEquals(retrievedPeriod, period);
 
-  console.log("Successfully set month and year");
+    console.log("Successfully added current month and year");
 
-  const date1: string = "2025-10-01";
-  const date2: string = "2025-10-02";
-  scheduler.addCookingDate(date1);
-  scheduler.addCookingDate(date2);
+    const date1: string = "2025-10-01";
+    const date2: string = "2025-10-02";
+    await scheduler.addCookingDate({ date: date1 });
+    await scheduler.addCookingDate({ date: date2 });
 
-  console.log("Successfully added two cooking dates");
+    const retrievedDates = await scheduler._getCookingDates({
+      period: period,
+    }) as Set<string>;
+    assert(retrievedDates.has(date1));
+    assert(retrievedDates.has(date2));
 
-  const user1: User = { kerb: "amy1" };
-  const user2: User = { kerb: "bob2" };
-  scheduler.addCook(user1);
-  scheduler.addCook(user2);
+    console.log("Successfully added two cooking dates");
 
-  console.log("Successfully added two cooks");
-  const availability1: Availability = {
-    user: user1,
-    dates: new Set([date1, date2]),
-  };
-  const availability2: Availability = {
-    user: user2,
-    dates: new Set([date2]),
-  };
-  const preference1: Preference = {
-    user: user1,
-    canSolo: true,
-    canLead: true,
-    canAssist: false,
-    maxCookingDays: 2,
-  };
-  const preference2: Preference = {
-    user: user2,
-    canSolo: false,
-    canLead: true,
-    canAssist: true,
-    maxCookingDays: 1,
-  };
-  scheduler.uploadAvailability(availability1);
-  scheduler.uploadPreference(preference1);
-  scheduler.uploadAvailability(availability2);
-  scheduler.uploadPreference(preference2);
+    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
 
-  console.log("Successfully uploaded availabilities and preferences");
+    console.log("Successfully added two cooks");
 
-  scheduler.assignLead(user1, date1);
-  scheduler.assignLead(user1, date2);
-  scheduler.assignAssistant(user2, date2);
+    await scheduler.addAvailability({ user: user1, date: date1 });
+    await scheduler.addAvailability({ user: user1, date: date2 });
+    await scheduler.addAvailability({ user: user2, date: date1 });
 
-  console.log("Successfully made assignments");
-  scheduler.validate(scheduler.getAssignments());
+    console.log("Successfully added availabilities");
 
-  console.log("Successfully validated assignments");
+    await scheduler.uploadPreference({
+      user: user1,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: false,
+      maxCookingDays: 2,
+    });
+    await scheduler.uploadPreference({
+      user: user2,
+      period: period,
+      canSolo: false,
+      canLead: false,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
 
-  scheduler.removeAssignment(date1);
-  scheduler.removeAssignment(date2);
+    console.log("Successfully uploaded preferences");
 
-  console.log("Successfully removed assignments");
+    await scheduler.assignLead({ user: user1, date: date1 });
+    await scheduler.assignLead({ user: user1, date: date2 });
+    await scheduler.assignAssistant({ user: user2, date: date1 });
 
-  scheduler.removeCook(user1);
+    console.log("Successfully made assignments");
 
-  console.log("Successfully removed cook");
+    await scheduler.removeAssignment({ date: date1 });
+    await scheduler.removeAssignment({ date: date2 });
 
-  scheduler.removeCookingDate(date1);
+    console.log("Successfully removed assignments");
 
-  console.log("Successfully removed cooking date");
+    await scheduler.removeCook({ user: user1 });
+
+    console.log("Successfully removed cook");
+
+    await scheduler.removeCookingDate({ date: date1 });
+
+    console.log("Successfully removed cooking date");
+  } finally {
+    await client.close();
+  }
 });
 /**
- * Test case 2: Simple LLM-assisted scheduling
- * Demonstrates adding cooks, preferences and availabilities and letting the LLM assign them automatically for a very simple case
+ * Test case 2: Algorithmic scheduling on very easy case
+ * Demonstrates adding cooks, preferences and availabilities, algorithmically assigning cooks
  */
-Deno.test("Principle: user upload availability and preferences, LLM assigns them automatically", async () => {
-  console.log("\n🧪 TEST CASE 2: LLM-Assisted Scheduling");
+Deno.test("Operational principle: user upload availability and preferences, algorithm assigns them", async () => {
+  console.log("\n🧪 TEST CASE 2: Algorithmic Scheduling");
   console.log("========================================");
+  const [db, client] = await testDb();
 
-  const scheduler = new CookingSchedule();
+  try {
+    const scheduler = new CookingSchedule(db);
+
+    const month: number = 10;
+    const year: number = 2025;
+    const period = await scheduler.addPeriod({
+      month,
+      year,
+      current: true,
+    }) as Period;
+
+    console.log("Successfully set month and year");
+
+    const date1: string = "2025-10-01";
+    const dates: Array<string> = [date1];
+    for (const date of dates) {
+      await scheduler.addCookingDate({ date: date });
+    }
+
+    console.log("Successfully added cooking dates");
+
+    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+
+    console.log("Successfully added cooks");
+
+    await scheduler.addAvailability({ user: user1, date: date1 });
+
+    console.log("Successfully uploaded availabilities");
+
+    await scheduler.uploadPreference({
+      user: user1,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+
+    console.log("Successfully uploaded preferences");
+
+    await scheduler.generateAssignments();
+
+    console.log("Successfully made assignments algorithmically");
+  } finally {
+    console.log("in finally block");
+    await client.close();
+    console.log("client closed");
+  }
+});
+/**
+ * Test case 3: More complex algorithmic scheduling
+ * Demonstrates adding cooks, preferences and availabilities and assigning cooks algorithmically
+ */
+Deno.test("Action: generateAssignments", async () => {
+  console.log("\n🧪 TEST CASE 3: Algorithmic Scheduling");
+  console.log("========================================");
+  const [db, client] = await testDb();
+
+  try {
+    const scheduler = new CookingSchedule(db);
+    const month: number = 10;
+    const year: number = 2025;
+    const period = await scheduler.addPeriod({
+      month,
+      year,
+      current: true,
+    }) as Period;
+
+    console.log("Successfully set month and year");
+
+    const date1: string = "2025-10-01";
+    const date2: string = "2025-10-02";
+    const date3: string = "2025-10-03";
+    const date4: string = "2025-10-04";
+    const dates: Array<string> = [date1, date2, date3, date4];
+    for (const date of dates) {
+      await scheduler.addCookingDate({ date: date });
+    }
+
+    console.log("Successfully added four cooking dates");
+
+    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
+    const user3 = await scheduler.addCook({ kerb: "casey3" }) as User;
+
+    console.log("Successfully added three cooks");
+
+    await scheduler.addAvailability({ user: user1, date: date1 });
+    await scheduler.addAvailability({ user: user1, date: date2 });
+    await scheduler.addAvailability({ user: user2, date: date3 });
+    await scheduler.addAvailability({ user: user3, date: date1 });
+    await scheduler.addAvailability({ user: user3, date: date3 });
+    await scheduler.addAvailability({ user: user3, date: date4 });
+
+    console.log("Successfully uploaded availabilities");
+
+    await scheduler.uploadPreference({
+      user: user1,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: false,
+      maxCookingDays: 2,
+    });
+    await scheduler.uploadPreference({
+      user: user2,
+      period: period,
+      canSolo: false,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+    await scheduler.uploadPreference({
+      user: user3,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+    console.log("Successfully uploaded preferences");
+
+    await scheduler.generateAssignments;
+
+    console.log("Successfully made assignments");
+  } finally {
+    await client.close();
+  }
+});
+/**
+ * Test case 4: Simple LLM-assisted scheduling
+ * Demonstrates adding cooks, preferences and availabilities, can call the LLM to assign them automatically for a very simple case
+ */
+Deno.test("Operational principle: user upload availability and preferences, LLM assigns them automatically", async () => {
+  console.log("\n🧪 TEST CASE 4: LLM-Assisted Scheduling");
+  console.log("========================================");
+  const [db, client] = await testDb();
+  const scheduler = new CookingSchedule(db);
   const llm = new GeminiLLM();
 
-  const month: number = 10;
-  const year: number = 2025;
-  scheduler.setMonth(month);
-  scheduler.setYear(year);
+  try {
+    const month: number = 10;
+    const year: number = 2025;
+    const period = await scheduler.addPeriod({
+      month,
+      year,
+      current: true,
+    }) as Period;
 
-  console.log("Successfully set month and year");
+    console.log("Successfully set month and year");
 
-  const date1: string = "2025-10-01";
+    const date1: string = "2025-10-01";
+    const dates: Array<string> = [date1];
+    for (const date of dates) {
+      await scheduler.addCookingDate({ date: date });
+    }
 
-  const dates: Array<string> = [date1];
+    console.log("Successfully added cooking dates");
 
-  dates.forEach((date) => {
-    scheduler.addCookingDate(date);
-  });
+    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
 
-  console.log("Successfully added cooking dates");
+    console.log("Successfully added cooks");
 
-  const user1: User = { kerb: "amy1" };
+    await scheduler.addAvailability({ user: user1, date: date1 });
 
-  const users: Array<User> = [user1];
+    console.log("Successfully uploaded availabilities");
 
-  users.forEach((user) => {
-    scheduler.addCook(user);
-  });
+    await scheduler.uploadPreference({
+      user: user1,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
 
-  console.log("Successfully added cooks");
-  const availability1: Availability = {
-    user: user1,
-    dates: new Set([date1]),
-  };
+    console.log("Successfully uploaded preferences");
 
-  const availabilities: Array<Availability> = [availability1];
+    await scheduler.generateAssignmentsWithLLM(llm);
 
-  availabilities.forEach((availability) => {
-    scheduler.uploadAvailability(availability);
-  });
-
-  console.log("Successfully uploaded availabilities");
-
-  const preference1: Preference = {
-    user: user1,
-    canSolo: true,
-    canLead: true,
-    canAssist: true,
-    maxCookingDays: 1,
-  };
-
-  const preferences: Array<Preference> = [preference1];
-
-  preferences.forEach((preference) => {
-    scheduler.uploadPreference(preference);
-  });
-
-  console.log("Successfully uploaded preferences");
-
-  await scheduler.generateAssignmentsWithLLM(llm);
-
-  console.log("Successfully made assignments");
-
-  scheduler.validate(scheduler.getAssignments());
-
-  console.log("Successfully validated assignments");
+    console.log("Successfully made assignments with LLM");
+  } finally {
+    await client.close();
+  }
 });
 
 /**
- * Test case 3: More complex LLM-assisted scheduling
+ * Test case 5: More complex LLM-assisted scheduling
  * Demonstrates adding cooks, preferences and availabilities and letting the LLM assign them automatically
  */
-Deno.test("Principle:", async () => {
-  console.log("\n🧪 TEST CASE 3: LLM-Assisted Scheduling");
+Deno.test("Action: generateAssignmentsWithLLM", async () => {
+  console.log("\n🧪 TEST CASE 5: LLM-Assisted Scheduling");
   console.log("========================================");
-
-  const scheduler = new CookingSchedule();
+  const [db, client] = await testDb();
+  const scheduler = new CookingSchedule(db);
   const llm = new GeminiLLM();
 
-  const month: number = 10;
-  const year: number = 2025;
-  scheduler.setMonth(month);
-  scheduler.setYear(year);
+  try {
+    const month: number = 10;
+    const year: number = 2025;
+    const period = await scheduler.addPeriod({
+      month,
+      year,
+      current: true,
+    }) as Period;
 
-  console.log("Successfully set month and year");
+    console.log("Successfully set month and year");
 
-  const date1: string = "2025-10-01";
-  const date2: string = "2025-10-02";
-  const date3: string = "2025-10-03";
-  const date4: string = "2025-10-04";
+    const date1: string = "2025-10-01";
+    const date2: string = "2025-10-02";
+    const date3: string = "2025-10-03";
+    const date4: string = "2025-10-04";
+    const dates: Array<string> = [date1, date2, date3, date4];
+    for (const date of dates) {
+      await scheduler.addCookingDate({ date: date });
+    }
 
-  const dates: Array<string> = [date1, date2, date3, date4];
+    console.log("Successfully added four cooking dates");
 
-  dates.forEach((date) => {
-    scheduler.addCookingDate(date);
-  });
+    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
+    const user3 = await scheduler.addCook({ kerb: "casey3" }) as User;
 
-  console.log("Successfully added four cooking dates");
+    console.log("Successfully added three cooks");
 
-  const user1: User = { kerb: "amy1" };
-  const user2: User = { kerb: "bob2" };
-  const user3: User = { kerb: "casey3" };
+    await scheduler.addAvailability({ user: user1, date: date1 });
+    await scheduler.addAvailability({ user: user1, date: date2 });
+    await scheduler.addAvailability({ user: user2, date: date3 });
+    await scheduler.addAvailability({ user: user3, date: date1 });
+    await scheduler.addAvailability({ user: user3, date: date3 });
+    await scheduler.addAvailability({ user: user3, date: date4 });
 
-  const users: Array<User> = [user1, user2, user3];
+    console.log("Successfully uploaded availabilities");
 
-  users.forEach((user) => {
-    scheduler.addCook(user);
-  });
+    await scheduler.uploadPreference({
+      user: user1,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: false,
+      maxCookingDays: 2,
+    });
+    await scheduler.uploadPreference({
+      user: user2,
+      period: period,
+      canSolo: false,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+    await scheduler.uploadPreference({
+      user: user3,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+    console.log("Successfully uploaded preferences");
 
-  console.log("Successfully added three cooks");
-  const availability1: Availability = {
-    user: user1,
-    dates: new Set([date1, date2]),
-  };
-  const availability2: Availability = {
-    user: user2,
-    dates: new Set([date3]),
-  };
+    await scheduler.generateAssignmentsWithLLM(llm);
 
-  const availability3: Availability = {
-    user: user3,
-    dates: new Set([date1, date3, date4]),
-  };
-
-  const availabilities: Array<Availability> = [
-    availability1,
-    availability2,
-    availability3,
-  ];
-
-  availabilities.forEach((availability) => {
-    scheduler.uploadAvailability(availability);
-  });
-
-  console.log("Successfully uploaded availabilities");
-
-  const preference1: Preference = {
-    user: user1,
-    canSolo: true,
-    canLead: true,
-    canAssist: false,
-    maxCookingDays: 2,
-  };
-  const preference2: Preference = {
-    user: user2,
-    canSolo: false,
-    canLead: true,
-    canAssist: true,
-    maxCookingDays: 1,
-  };
-  const preference3: Preference = {
-    user: user3,
-    canSolo: true,
-    canLead: true,
-    canAssist: true,
-    maxCookingDays: 1,
-  };
-  const preferences: Array<Preference> = [
-    preference1,
-    preference2,
-    preference3,
-  ];
-
-  preferences.forEach((preference) => {
-    scheduler.uploadPreference(preference);
-  });
-
-  console.log("Successfully uploaded preferences");
-
-  await scheduler.generateAssignmentsWithLLM(llm);
-
-  console.log("Successfully made assignments");
-
-  scheduler.validate(scheduler.getAssignments());
-
-  console.log("Successfully validated assignments");
+    console.log("Successfully made assignments");
+  } finally {
+    await client.close();
+  }
 });
 
 /**
- * Test case 4: Scheduling where it's not possible to fully fill the calendar
+ * Test case 6: Scheduling where it's not possible to fully fill the calendar
  * Demonstrates how the LLM performs when there are optimal solutions but no perfect solutions
  */
-Deno.test("Principle", async () => {
-  console.log("\n🧪 TEST CASE 4: Impossible Scheduling");
-  console.log("=================================");
+Deno.test("Impossible case", async () => {
+  console.log("\n🧪 TEST CASE 5: LLM-Assisted Scheduling");
+  console.log("========================================");
+  const [db, client] = await testDb();
 
-  const scheduler = new CookingSchedule();
-  const llm = new GeminiLLM();
+  try {
+    const scheduler = new CookingSchedule(db);
+    const llm = new GeminiLLM();
+    const month: number = 10;
+    const year: number = 2025;
+    const period = await scheduler.addPeriod({
+      month,
+      year,
+      current: true,
+    }) as Period;
 
-  const month: number = 10;
-  const year: number = 2025;
-  scheduler.setMonth(month);
-  scheduler.setYear(year);
+    console.log("Successfully set month and year");
 
-  console.log("Successfully set month and year");
+    const date1: string = "2025-10-01";
+    const date2: string = "2025-10-02";
+    const date3: string = "2025-10-03";
+    const date4: string = "2025-10-04";
+    const dates: Array<string> = [date1, date2, date3, date4];
+    for (const date of dates) {
+      await scheduler.addCookingDate({ date: date });
+    }
 
-  const date1: string = "2025-10-01";
-  const date2: string = "2025-10-02";
-  const date3: string = "2025-10-03";
-  const date4: string = "2025-10-04";
+    console.log("Successfully added four cooking dates");
 
-  const dates: Array<string> = [date1, date2, date3, date4];
+    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
+    const user3 = await scheduler.addCook({ kerb: "casey3" }) as User;
 
-  dates.forEach((date) => {
-    scheduler.addCookingDate(date);
-  });
+    console.log("Successfully added three cooks");
 
-  console.log("Successfully added four cooking dates");
+    await scheduler.addAvailability({ user: user1, date: date1 });
+    await scheduler.addAvailability({ user: user1, date: date2 });
+    await scheduler.addAvailability({ user: user2, date: date3 });
+    await scheduler.addAvailability({ user: user3, date: date1 });
+    await scheduler.addAvailability({ user: user3, date: date3 });
+    await scheduler.addAvailability({ user: user3, date: date4 });
 
-  const user1: User = { kerb: "amy1" };
-  const user2: User = { kerb: "bob2" };
-  const user3: User = { kerb: "casey3" };
+    console.log("Successfully uploaded availabilities");
 
-  const users: Array<User> = [user1, user2, user3];
+    await scheduler.uploadPreference({
+      user: user1,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: false,
+      maxCookingDays: 2,
+    });
+    await scheduler.uploadPreference({
+      user: user2,
+      period: period,
+      canSolo: false,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+    await scheduler.uploadPreference({
+      user: user3,
+      period: period,
+      canSolo: true,
+      canLead: true,
+      canAssist: true,
+      maxCookingDays: 1,
+    });
+    console.log("Successfully uploaded preferences");
 
-  users.forEach((user) => {
-    scheduler.addCook(user);
-  });
+    await scheduler.generateAssignmentsWithLLM(llm);
 
-  console.log("Successfully added three cooks");
-  const availability1: Availability = {
-    user: user1,
-    dates: new Set([date1, date2]),
-  };
-  const availability2: Availability = {
-    user: user2,
-    dates: new Set([date3]),
-  };
-
-  const availability3: Availability = {
-    user: user3,
-    dates: new Set([date1, date3]),
-  };
-
-  const availabilities: Array<Availability> = [
-    availability1,
-    availability2,
-    availability3,
-  ];
-
-  availabilities.forEach((availability) => {
-    scheduler.uploadAvailability(availability);
-  });
-
-  console.log("Successfully uploaded availabilities");
-
-  const preference1: Preference = {
-    user: user1,
-    canSolo: true,
-    canLead: true,
-    canAssist: false,
-    maxCookingDays: 2,
-  };
-  const preference2: Preference = {
-    user: user2,
-    canSolo: false,
-    canLead: true,
-    canAssist: true,
-    maxCookingDays: 1,
-  };
-  const preference3: Preference = {
-    user: user3,
-    canSolo: true,
-    canLead: true,
-    canAssist: true,
-    maxCookingDays: 1,
-  };
-  const preferences: Array<Preference> = [
-    preference1,
-    preference2,
-    preference3,
-  ];
-
-  preferences.forEach((preference) => {
-    scheduler.uploadPreference(preference);
-  });
-
-  console.log("Successfully uploaded preferences");
-
-  await scheduler.generateAssignmentsWithLLM(llm);
-
-  console.log("Successfully made assignments");
-
-  scheduler.validate(scheduler.getAssignments());
-
-  console.log("Successfully validated assignments");
+    console.log("Successfully made assignments");
+  } finally {
+    await client.close();
+  }
 });

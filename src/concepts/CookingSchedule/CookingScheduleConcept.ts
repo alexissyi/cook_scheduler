@@ -1,28 +1,42 @@
 import { assert } from "jsr:@std/assert/assert";
+import { Collection, DataKey, Db, IdPServerResponse } from "npm:mongodb";
+import { freshID } from "@utils/database.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
-import { User } from "@utils/types.ts";
-import { getMonth, getYear } from "@utils/utility-functions.ts";
+import { getDay, getMonth, getYear } from "@utils/utility-functions.ts";
+import { ID } from "@utils/types.ts";
+import UserAuthentication from "../UserAuthentication/UserAuthenticationConcept.ts";
+
 // all dates represented in YYYY-MM-DD string format
 
-export interface JSONAssignment {
-  leadKerb: string;
-  assistantKerb?: string;
-  date: string;
-}
+export type User = ID;
+export type Period = ID;
+type Preference = ID;
 
-export interface Assignment {
+type JSONAssignment = {
+  lead: User;
+  assistant: User;
+  date: string;
+};
+
+interface AssignmentDoc {
+  _id: ID;
+  period: Period;
   lead: User;
   assistant?: User;
   date: string;
 }
 
-export interface Availability {
+interface AvailabilityDoc {
+  _id: ID;
   user: User;
-  dates: Set<string>;
+  period: Period;
+  date: string;
 }
 
-export interface Preference {
+interface PreferenceDoc {
+  _id: Preference;
+  period: Period;
   user: User;
   canSolo: boolean;
   canLead: boolean;
@@ -30,218 +44,553 @@ export interface Preference {
   maxCookingDays: number;
 }
 
+interface PeriodDoc {
+  _id: Period;
+  month: number;
+  year: number;
+  current: boolean;
+}
+
+interface DateDoc {
+  _id: ID;
+  period: Period;
+  date: string;
+  day: number;
+  month: number;
+  year: number;
+}
+
+interface UserDoc {
+  _id: User;
+  kerb: string;
+}
+
+interface DateFilter {
+  day: number;
+  month: number;
+  year: number;
+}
+
+function turnDateStringtoDateFilter(dateString: string): DateFilter {
+  const month = getMonth(dateString);
+  const year = getYear(dateString);
+  const day = getDay(dateString);
+  return { day: day, month: month, year: year };
+}
+
+// Collection prefix to ensure namespace separation
+const PREFIX = "CookingSchedule" + ".";
+const MONTHS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+
 export class CookingSchedule {
-  private month: number = 0;
-  private year: number = 0;
-  private cooks: Map<string, User> = new Map();
-  private cookingDates: Set<string> = new Set();
-  private availabilities: Map<User, Availability> = new Map();
-  private preferences: Map<User, Preference> = new Map();
-  private assignments: Map<string, Assignment> = new Map();
+  cooks: Collection<UserDoc>;
+  periods: Collection<PeriodDoc>;
+  cookingDates: Collection<DateDoc>;
+  availabilities: Collection<AvailabilityDoc>;
+  preferences: Collection<PreferenceDoc>;
+  assignments: Collection<AssignmentDoc>;
 
-  addCook(user: User): User {
-    this.cooks.forEach((cook) => {
-      assertNotEquals(cook.kerb, user.kerb);
-    });
-    this.cooks.set(user.kerb, user);
-    return user;
+  constructor(private readonly db: Db) {
+    this.periods = this.db.collection(PREFIX + "Periods");
+    this.cookingDates = this.db.collection(PREFIX + "CookingDates");
+    this.availabilities = this.db.collection(PREFIX + "Availabilities");
+    this.preferences = this.db.collection(PREFIX + "Preferences");
+    this.assignments = this.db.collection(PREFIX + "Assignments");
+    this.cooks = this.db.collection(PREFIX + "Cooks");
   }
 
-  removeCook(user: User): User {
-    assert(this.cooks.has(user.kerb));
-    this.cooks.delete(user.kerb);
-    if (this.preferences.has(user)) {
-      this.preferences.delete(user);
+  async addCook({ kerb }: { kerb: string }): Promise<User | { error: string }> {
+    const matchingCook = await this.cooks.findOne({ kerb: kerb });
+    assert(matchingCook === null);
+    const cookID = freshID();
+    await this.cooks.insertOne({ _id: cookID, kerb: kerb });
+    return cookID;
+  }
+
+  async removeCook(
+    { user }: { user: User },
+  ): Promise<void | { error: string }> {
+    const matchingCook = await this.cooks.findOne({ _id: user });
+    const matchingAssignment = await this.assignments.findOne({ user: user });
+    assertExists(matchingCook);
+    assert(matchingAssignment === null);
+    await this.cooks.deleteOne({ _id: user });
+    await this.preferences.deleteMany({ user: user });
+    await this.availabilities.deleteMany({ user: user });
+  }
+
+  async addPeriod(
+    { month, year, current }: { month: number; year: number; current: boolean },
+  ): Promise<Period | { error: string }> {
+    assert(MONTHS.has(month));
+    assert(year >= 0);
+    assert(year % 1 === 0);
+    if (current) {
+      await this.periods.updateMany({ current: true }, {
+        $set: { current: false },
+      });
     }
-    if (this.availabilities.has(user)) {
-      this.availabilities.delete(user);
-    }
-    const datesToDelete: Array<string> = [];
-    this.assignments.forEach((assignment, date) => {
-      if (assignment.lead.kerb === user.kerb) {
-        datesToDelete.push(date);
-      } else if (assignment.assistant?.kerb === user.kerb) {
-        assignment.assistant = undefined;
+    const periodID = freshID();
+    const periodDoc = {
+      _id: periodID,
+      month: month,
+      year: year,
+      current: current,
+    };
+    await this.periods.insertOne(periodDoc);
+    return periodID;
+  }
+
+  async setCurrentPeriod(
+    { month, year }: { month: number; year: number },
+  ): Promise<void | { error: string }> {
+    assert(MONTHS.has(month));
+    assert(year >= 0);
+    assert(year % 1 === 0);
+    const existingPeriod = await this.periods.findOne({
+      month: month,
+      year: year,
+    });
+    assertExists(existingPeriod);
+    if (existingPeriod.current) return;
+    await this.periods.updateOne({ month: month, year: year }, {
+      $set: {
+        current: true,
+      },
+    });
+  }
+
+  private async getPeriod(
+    { date }: { date: string },
+  ): Promise<Period | { error: string }> {
+    const month = getMonth(date);
+    const year = getYear(date);
+    const periodDoc = await this.periods.findOne({ month: month, year: year });
+    assertExists(periodDoc);
+    const period = periodDoc._id;
+    return period;
+  }
+
+  async addCookingDate(
+    { date }: { date: string },
+  ): Promise<void | { error: string }> {
+    const period = await this.getPeriod({ date: date }) as Period;
+    const dateDoc = {
+      _id: freshID(),
+      period: period,
+      date: date,
+      day: getDay(date),
+      month: getMonth(date),
+      year: getYear(date),
+    };
+    await this.cookingDates.insertOne(dateDoc);
+  }
+
+  async removeCookingDate(
+    { date }: { date: string },
+  ): Promise<void | { error: string }> {
+    const filter = turnDateStringtoDateFilter(date);
+    const dateDoc = await this.cookingDates.findOne(filter);
+    assertExists(dateDoc);
+    await this.cookingDates.deleteOne(filter);
+  }
+
+  async assignLead(
+    { user, date }: { user: User; date: string },
+  ): Promise<void | { error: string }> {
+    try {
+      const period = await this.getPeriod({ date: date }) as Period;
+      const filter = turnDateStringtoDateFilter(date);
+      const matchingDate = await this.cookingDates.findOne(filter);
+      assertExists(matchingDate, "Invalid cooking date");
+
+      const matchingCook = await this.cooks.findOne({ _id: user });
+      assertExists(matchingCook, "Invalid user");
+
+      const matchingAvailability = await this.availabilities.findOne({
+        user: user,
+        date: date,
+      });
+      assertExists(matchingAvailability, "No availability");
+
+      const matchingPreference = await this.preferences.findOne({ user: user });
+      assertExists(matchingPreference, "No preference");
+
+      assert(
+        matchingPreference.canLead ||
+          matchingPreference.canSolo,
+      );
+
+      const matchingAssignment = await this.assignments.findOne({
+        date: date,
+      });
+
+      if (matchingAssignment) {
+        await this.assignments.updateOne({ date: date }, {
+          $set: { lead: user },
+        });
+      } else {
+        await this.assignments.insertOne({
+          _id: freshID(),
+          period: period,
+          lead: user,
+          date: date,
+        });
       }
-    });
-    return user;
-  }
-
-  setMonth(month: number): number {
-    this.assignments.forEach((assignment) => {
-      assertEquals(getMonth(assignment.date), month);
-    });
-    this.cookingDates.forEach((date) => {
-      assertEquals(getMonth(date), month);
-    });
-    this.month = month;
-    return this.month;
-  }
-
-  setYear(year: number): number {
-    this.assignments.forEach((assignment) => {
-      assertEquals(getYear(assignment.date), year);
-    });
-    this.cookingDates.forEach((date) => {
-      assertEquals(getYear(date), year);
-    });
-    this.year = year;
-    return this.year;
-  }
-
-  addCookingDate(date: string): string {
-    assertEquals(getMonth(date), this.month);
-    assertEquals(getYear(date), this.year);
-    this.cookingDates.add(date);
-    return date;
-  }
-
-  removeCookingDate(date: string): string {
-    assert(this.cookingDates.has(date));
-    this.cookingDates.delete(date);
-    return date;
-  }
-
-  assignLead(user: User, date: string) {
-    assert(this.cookingDates.has(date));
-    assert(this.cooks.has(user.kerb));
-    assert(this.availabilities.get(user)?.dates.has(date));
-    assert(
-      this.preferences.get(user)?.canLead === true ||
-        this.preferences.get(user)?.canSolo === true,
-    );
-    if (this.assignments.has(date)) {
-      const assignment = this.assignments.get(date);
-      if (assignment) {
-        assignment.lead = user;
-      }
-    } else {
-      const lead = user;
-      const assignment: Assignment = {
-        lead,
-        date,
-      };
-      this.assignments.set(date, assignment);
+    } catch (error) {
+      console.error("❌ Error assigning lead:", (error as Error).message);
     }
   }
 
-  assignAssistant(user: User, date: string) {
-    assert(this.cookingDates.has(date));
-    assert(this.cooks.has(user.kerb));
-    assert(this.availabilities.get(user)?.dates.has(date));
-    assert(
-      this.preferences.get(user)?.canAssist,
-      `${user.kerb} cannot assist: ${this.preferences.get(user)}`,
-    );
-    assert(this.assignments.has(date));
+  async assignAssistant(
+    { user, date }: { user: User; date: string },
+  ): Promise<void | { error: string }> {
+    try {
+      const matchingDate = await this.cookingDates.findOne({ date: date });
+      assertExists(matchingDate, "Invalid cooking date");
+      const matchingUser = await this.cooks.findOne({ _id: user });
+      assertExists(matchingUser, "Invalid user");
+      const matchingAvailability = await this.availabilities.findOne({
+        user: user,
+        date: date,
+      });
+      assertExists(matchingAvailability, "No availability");
+      const matchingPreference = await this.preferences.findOne({ user: user });
+      assertExists(matchingPreference, "No preferences");
 
-    const assignment = this.assignments.get(date);
-    if (assignment) {
-      const lead = assignment.lead;
-      assert(this.preferences.get(lead)?.canLead);
-      assignment.assistant = user;
+      assert(matchingPreference.canAssist, "This user cannot assist");
+
+      await this.assignments.updateOne({ date: date }, {
+        $set: { assistant: user },
+      });
+    } catch (error) {
+      console.error("❌ Error assigning assistant:", (error as Error).message);
+      throw error;
     }
   }
 
-  removeAssignment(date: string) {
-    assert(this.assignments.has(date));
-    this.assignments.delete(date);
+  async removeAssignment(
+    { date }: { date: string },
+  ): Promise<void | { error: string }> {
+    const matchingAssignment = await this.assignments.findOne({ date: date });
+    assertExists(matchingAssignment);
+    await this.assignments.deleteOne({ date: date });
   }
 
-  private checkPreference(assignment: Assignment, user: User): boolean {
-    const preference = this.preferences.get(user);
-    if (assignment.lead.kerb === user.kerb) {
-      if (assignment.assistant === undefined) {
-        if (preference && !preference.canSolo) {
-          return false;
+  private async deleteIncompatibleAssignments(
+    { preference }: { preference: Preference },
+  ): Promise<void | { error: string }> {
+    const preferenceDoc = await this.preferences.findOne({ _id: preference });
+    assertExists(preferenceDoc);
+    const period = preferenceDoc.period;
+    const periodDoc = await this.periods.findOne({ _id: period });
+    assertExists(periodDoc);
+    const user = preferenceDoc.user;
+    const month = periodDoc.month;
+    const year = periodDoc.year;
+    const canSolo = preferenceDoc.canSolo;
+    const canLead = preferenceDoc.canLead;
+    const canAssist = preferenceDoc.canAssist;
+    const maxCookingDays = preferenceDoc.maxCookingDays;
+    if (!canSolo) {
+      await this.assignments.deleteMany({
+        period: period,
+        lead: user,
+        assistant: undefined,
+      });
+    }
+
+    if (!canLead) {
+      await this.assignments.deleteMany({
+        period: period,
+        lead: user,
+      });
+    }
+
+    if (!canAssist) {
+      await this.assignments.deleteMany({
+        period: period,
+        assistant: user,
+      });
+    }
+
+    const assistingAssignments = await this.assignments.find({
+      period: period,
+      assistant: user,
+    }).toArray();
+    const leadAssignments = await this.assignments.find({
+      period: period,
+      lead: user,
+    }).toArray();
+
+    const numAssistingAssignments = assistingAssignments.length;
+    const numLeadAssignments = leadAssignments.length;
+    const totalAssignments = numAssistingAssignments + numLeadAssignments;
+
+    if (totalAssignments > maxCookingDays) {
+      let toDelete = totalAssignments - maxCookingDays;
+      if (toDelete > numAssistingAssignments) {
+        await this.assignments.updateMany({ period: period, assistant: user }, {
+          $set: {
+            assistant: undefined,
+          },
+        });
+        toDelete -= numAssistingAssignments;
+        const idsToDelete: Array<ID> = [];
+        for (let i = 0; i++; i < toDelete) {
+          idsToDelete.push(leadAssignments[i]._id);
+        }
+        for (const id of idsToDelete) {
+          await this.assignments.deleteOne({ _id: id });
         }
       } else {
-        if (preference && !preference.canLead) {
-          return false;
+        const idsToUpdate: Array<ID> = [];
+        for (let i = 0; i++; i < toDelete) {
+          idsToUpdate.push(assistingAssignments[i]._id);
+
+          for (const id of idsToUpdate) {
+            await this.assignments.updateOne({ _id: id }, {
+              $set: {
+                assistant: undefined,
+              },
+            });
+          }
         }
       }
-    } else if (
-      assignment.assistant &&
-      assignment.assistant.kerb === user.kerb
-    ) {
-      if (preference && !preference.canAssist) {
-        return false;
-      }
-    }
-    return true;
-  }
-  private checkAvailability(assignment: Assignment, user: User): boolean {
-    const availability = this.availabilities.get(user);
-    const date = assignment.date;
-    if (
-      availability &&
-      (assignment.lead.kerb === user.kerb ||
-        assignment.assistant?.kerb === user.kerb) &&
-      !availability.dates.has(date)
-    ) {
-      return false;
-    }
-    return true;
-  }
-
-  uploadPreference(preference: Preference) {
-    const user = preference.user;
-    assert(this.cooks.has(user.kerb));
-    this.preferences.set(user, preference);
-
-    const datesToDelete: Array<string> = [];
-    const allDates: Array<string> = [];
-    let totalAssignments = 0;
-    this.assignments.forEach((assignment, date) => {
-      if (
-        assignment.lead.kerb === user.kerb ||
-        assignment.assistant?.kerb === user.kerb
-      ) {
-        totalAssignments += 1;
-        allDates.push(date);
-        if (this.checkPreference(assignment, user)) {
-          datesToDelete.push(date);
-        }
-      }
-    });
-    datesToDelete.forEach((date) => {
-      this.assignments.delete(date);
-    });
-    preference && totalAssignments > preference.maxCookingDays;
-    const extraDays = totalAssignments - preference.maxCookingDays;
-    for (let i = 1; i <= extraDays; i++) {
-      this.assignments.delete(allDates[-i]);
     }
   }
 
-  uploadAvailability(availability: Availability) {
-    const user = availability.user;
-    assert(this.cooks.has(user.kerb));
-    this.availabilities.set(user, availability);
+  async uploadPreference(
+    { user, period, canSolo, canLead, canAssist, maxCookingDays }: {
+      user: User;
+      period: Period;
+      canSolo: boolean;
+      canLead: boolean;
+      canAssist: boolean;
+      maxCookingDays: number;
+    },
+  ): Promise<void | { error: string }> {
+    try {
+      const matchingUser = await this.cooks.findOne({ _id: user });
+      assertExists(matchingUser);
 
-    const datesToDelete: Array<string> = [];
+      const matchingPreference = await this.preferences.findOne({
+        user: user,
+        period: period,
+      });
 
-    this.assignments.forEach((assignment, date) => {
-      if (
-        assignment.lead.kerb === user.kerb ||
-        assignment.assistant?.kerb === user.kerb
-      ) {
-        if (!this.checkAvailability(assignment, user)) {
-          datesToDelete.push(date);
-        }
+      if (matchingPreference) {
+        await this.preferences.updateOne({ user: user, period: period }, {
+          $set: {
+            canSolo: canSolo,
+            canLead: canLead,
+            canAssist: canAssist,
+            maxCookingDays: maxCookingDays,
+          },
+        });
+      } else {
+        await this.preferences.insertOne({
+          _id: freshID(),
+          user: user,
+          period: period,
+          canSolo: canSolo,
+          canLead: canLead,
+          canAssist: canAssist,
+          maxCookingDays: maxCookingDays,
+        });
       }
-    });
 
-    datesToDelete.forEach((date) => {
-      this.assignments.delete(date);
-    });
+      const preferenceDoc = await this.preferences.findOne({
+        user: user,
+        period: period,
+      });
+      assertExists(preferenceDoc, "No preference");
+      const preference = preferenceDoc._id;
+
+      // delete incompatible assignments
+
+      await this.deleteIncompatibleAssignments({ preference: preference });
+    } catch (error) {
+      console.error("❌ Error uploadign preference:", (error as Error).message);
+      throw error;
+    }
   }
 
-  async generateAssignments(): Promise<void> {}
+  async addAvailability(
+    { user, date }: { user: User; date: string },
+  ): Promise<void | { error: string }> {
+    try {
+      const matchingUser = await this.cooks.findOne({ _id: user });
+      assertExists(matchingUser);
+      const period = await this.getPeriod({ date: date }) as Period;
+
+      const matchingAvailability = await this.availabilities.findOne({
+        user: user,
+        date: date,
+      });
+      assert(matchingAvailability === null);
+
+      await this.availabilities.insertOne({
+        _id: freshID(),
+        user: user,
+        date: date,
+        period: period,
+      });
+    } catch (error) {
+      console.error("❌ Error adding availability:", (error as Error).message);
+      throw error;
+    }
+  }
+
+  async removeAvailability(
+    { user, date }: { user: User; date: string },
+  ): Promise<void | { error: string }> {
+    try {
+      const matchingUser = await this.cooks.findOne({ _id: user });
+      assertExists(matchingUser);
+
+      const matchingAvailability = await this.availabilities.findOne({
+        user: user,
+        date: date,
+      });
+      assertExists(matchingAvailability);
+
+      await this.availabilities.deleteOne({ user: user, date: date });
+
+      await this.assignments.deleteMany({ lead: user, date: date });
+      await this.assignments.deleteMany({ assistant: user, date: date });
+    } catch (error) {
+      console.error(
+        "❌ Error removing availability:",
+        (error as Error).message,
+      );
+      throw error;
+    }
+  }
+
+  async generateAssignments(): Promise<void> {
+    try {
+      // simple greedy (nonoptimal) algorithm: for each day, assign based on following priority
+      // 1. solo cooks over lead-assistant pairs
+      // 2. people with more cooking days left to assign over those with less
+
+      const currentPeriod = await this.periods.findOne({ current: true });
+      assertExists(currentPeriod, "No current period");
+      const period = currentPeriod._id;
+
+      const cookingDates = await this.cookingDates.find({
+        period: period,
+      }).toArray();
+
+      // set up assignmentsLeftPerUser
+      const assignmentsLeftPerUser: Map<User, number> = new Map();
+      const cooks = await this.cooks.find().toArray();
+      for (const cook of cooks) {
+        const user = cook._id;
+        const preference = await this.preferences.findOne({
+          user: user,
+          period: period,
+        });
+        assertExists(preference, "No preference found");
+        const maxCookingDays = preference.maxCookingDays;
+        assignmentsLeftPerUser.set(user, maxCookingDays);
+      }
+
+      // go day and day and populate assignmets
+      for (const cookingDate of cookingDates) {
+        const date = cookingDate.date;
+        const availabilities = await this.availabilities.find({ date: date })
+          .toArray();
+        let solo: User | null = null;
+        let maxSoloAssignments = -1;
+
+        // go user by user to check for who to assign to this day
+        for (const availability of availabilities) {
+          const user: User = availability.user;
+          const assignmentsLeft = assignmentsLeftPerUser.get(user);
+          assertExists(assignmentsLeft, "No max assignments found");
+
+          // if they can solo, store them
+          const soloPreference = await this.preferences.findOne({
+            user: user,
+            canSolo: true,
+          });
+
+          if (soloPreference && assignmentsLeft > maxSoloAssignments) {
+            solo = user;
+            maxSoloAssignments = assignmentsLeft;
+          }
+        }
+        if (solo !== null) {
+          assignmentsLeftPerUser.set(solo, maxSoloAssignments - 1);
+          await this.assignLead({ user: solo, date: date }); //problematic line
+        } else {
+          let lead: User | null = null;
+          let maxLeadAssignments = -1;
+          let assist: User | null = null;
+          let maxAssistAssignments = -1;
+
+          for (const availability of availabilities) {
+            const user: User = availability.user;
+            const assignmentsLeft = assignmentsLeftPerUser.get(user);
+            assertExists(assignmentsLeft);
+
+            // if they can lead, store them
+            const leadPreference = await this.preferences.findOne({
+              user: user,
+              canLead: true,
+              period: period,
+            });
+            if (leadPreference && assignmentsLeft > maxLeadAssignments) {
+              lead = user;
+              maxLeadAssignments = assignmentsLeft;
+            }
+          }
+
+          if (lead !== null) {
+            assignmentsLeftPerUser.set(lead, maxLeadAssignments - 1);
+            await this.assignLead({ user: lead, date: date });
+
+            for (const availability of availabilities) {
+              const user: User = availability.user;
+              const assignmentsLeft = assignmentsLeftPerUser.get(user);
+              assertExists(assignmentsLeft);
+
+              // if someone can assist, store them
+              const assistPreference = await this.preferences.findOne({
+                user: user,
+                canAssist: true,
+                period: period,
+              });
+              if (
+                assistPreference && assignmentsLeft > maxLeadAssignments &&
+                lead !== user
+              ) {
+                assist = user;
+                maxAssistAssignments = assignmentsLeft;
+              }
+            }
+            if (assist !== null) {
+              assignmentsLeftPerUser.set(assist, maxAssistAssignments - 1);
+              await this.assignAssistant({ user: assist, date: date });
+            }
+          }
+        }
+
+        console.log("Finished algorithmic generation");
+      }
+    } catch (error) {
+      console.error(
+        "❌ Error generating assignments algorithmically:",
+        (error as Error).message,
+      );
+      throw error;
+    }
+  }
 
   async generateAssignmentsWithLLM(llm: GeminiLLM): Promise<void> {
     try {
-      const prompt = this.createPrompt();
+      const prompt = await this.createPrompt() as string;
       const text = await llm.executeLLM(prompt);
 
       console.log("✅ Received response from Gemini AI!");
@@ -251,34 +600,67 @@ export class CookingSchedule {
       console.log("======================\n");
 
       // Parse and apply the assignments
-      this.parseAndApplyAssignments(text);
+      await this.parseAndApplyAssignments({ responseText: text });
     } catch (error) {
       console.error("❌ Error calling Gemini API:", (error as Error).message);
       throw error;
     }
   }
 
-  private createPrompt(): string {
+  private async createPrompt(): Promise<string | { error: string }> {
+    const periodDoc = await this.periods.findOne({ current: true });
+    assertExists(periodDoc);
+    const period = periodDoc._id;
+
     let preferencesSection = "";
-    this.preferences.forEach((preference, user) => {
-      preferencesSection += user.kerb +
+    const preferences = await this.preferences.find({ period: period })
+      .toArray();
+
+    for (const preferenceDoc of preferences) {
+      preferencesSection += preferenceDoc.user +
         ": " +
-        `{ canSolo: ${preference.canSolo}, canLead: ${preference.canLead}, canAssist: ${preference.canAssist}, maxCookingDays: ${preference.maxCookingDays}`;
+        `{ canSolo: ${preferenceDoc.canSolo}, canLead: ${preferenceDoc.canLead}, canAssist: ${preferenceDoc.canAssist}, maxCookingDays: ${preferenceDoc.maxCookingDays}`;
       preferencesSection += "\n";
-    });
+    }
+
     let availabilitiesSection = "";
-    this.availabilities.forEach((availability, user) => {
-      const stringDates: Array<string> = [];
-      availability.dates.forEach((date) => {
-        stringDates.push(date);
-      });
-      availabilitiesSection += user.kerb + ": " +
-        `{ ${stringDates.join(";  ")}}`;
+    const cooks = await this.cooks.find().toArray();
+    assertExists(cooks);
+
+    for (const cookDoc of cooks) {
+      const user: User = cookDoc._id;
+      const dates: Array<string> = [];
+      const availabilities = await this.availabilities.find({
+        period: period,
+        user: user,
+      }).toArray();
+      for (const availabilityDoc of availabilities) {
+        const date = availabilityDoc.date;
+        dates.push(date);
+      }
+
+      availabilitiesSection += user + ": " +
+        `{ ${dates.join(",  ")}}`;
       availabilitiesSection += "\n";
-    });
+    }
+
     let cookingDatesSection = "";
-    this.cookingDates.forEach((date) => {
-      cookingDatesSection += date + "; ";
+    const cookingDates = await this.cookingDates.find({ period: period })
+      .toArray();
+    assertExists(cookingDates);
+    cookingDates.forEach((dateDoc) => {
+      cookingDatesSection += dateDoc.date + ", ";
+    });
+
+    let assignmentsSection = "";
+    const assignments = await this.assignments.find({ period: period })
+      .toArray();
+    assertExists(assignments);
+    assignments.forEach((assignmentDoc) => {
+      assignmentsSection += `${assignmentDoc.date}` + ": ";
+      assignmentsSection +=
+        `{ Lead: ${assignmentDoc.lead}, Assistant: ${assignmentDoc.assistant}}`;
+      assignmentsSection += "\n";
     });
 
     let criticalRequirements = `
@@ -291,7 +673,7 @@ export class CookingSchedule {
     7. No date should have an assistant cook but no lead cook.`;
 
     const prompt =
-      `You are a helpful LLM assistant that is helping a household manager assign users to a monthly calendar for the month of ${this.month}, ${this.year}. 
+      `You are a helpful LLM assistant that is helping a household manager assign users to a monthly calendar for the month of ${periodDoc.month}, ${periodDoc.year}. 
     
     Each user has a set of dates they are available. 
     
@@ -311,7 +693,9 @@ export class CookingSchedule {
     
     These are the cooking dates: ${cookingDatesSection}. For each date, we want a lead cook, and optionally an assistant cook.
 
-    Finally, here are some existing assignments that need to be preserved: ${this.assignments}.
+    Finally, here are some existing assignments that need to be preserved: 
+    
+    ${assignmentsSection}
 
     Create a proposed calendar assigning users to be either lead or assistant cook for each date, with these critical requirements:
 
@@ -321,9 +705,9 @@ export class CookingSchedule {
     {
     "assignments": [
         {
-        "date": "a date in YYYY-MM-DD format"
-        "leadKerb": "user name",
-        "assistantKerb": "user name"
+        "date": a date in YYYY-MM-DD format
+        "lead": userid,
+        "assistant": userid
         }
     ]
     }
@@ -333,7 +717,9 @@ export class CookingSchedule {
     return prompt;
   }
 
-  private parseAndApplyAssignments(responseText: String): void {
+  private async parseAndApplyAssignments(
+    { responseText }: { responseText: String },
+  ): Promise<void | { error: string }> {
     try {
       // Extract JSON from response (in case there's extra text)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -348,38 +734,36 @@ export class CookingSchedule {
       }
 
       const assignmentsJSON: Array<JSONAssignment> = response.assignments;
-      const assignments: Array<Assignment> = [];
-
-      assignmentsJSON.forEach((assignmentJSON) => {
-        const date = assignmentJSON.date;
-        const lead = this.cooks.get(assignmentJSON.leadKerb);
-        assert(date !== undefined);
-        assert(lead !== undefined);
-        if (lead !== undefined) {
-          const assignment: Assignment = { date, lead };
-          if (assignmentJSON.assistantKerb) {
-            const assistant = this.cooks.get(assignmentJSON.assistantKerb);
-            assignment["assistant"] = assistant;
-          }
-
-          assignments.push(assignment);
-        }
-      });
 
       console.log("Generated following assignments");
 
-      console.log(assignments);
+      console.log(assignmentsJSON);
 
-      this.validate(assignments);
-
-      console.log("📝 Applying LLM assignments...");
-
-      assignments.forEach((assignment) => {
-        this.assignLead(assignment.lead, assignment.date);
-        if (assignment.assistant) {
-          this.assignAssistant(assignment.assistant, assignment.date);
+      for (const assignmentJSON of assignmentsJSON) {
+        const date = assignmentJSON.date;
+        const lead = assignmentJSON.lead;
+        const assistant = assignmentJSON.assistant;
+        try {
+          await this.assignLead({ user: lead, date: date });
+        } catch (error) {
+          console.error(
+            "❌ Error creating lead assignment, aborting:",
+            (error as Error).message,
+          );
         }
-      });
+        if (assistant !== null) {
+          try {
+            await this.assignAssistant({ user: assistant, date: date });
+          } catch (error) {
+            console.error(
+              "❌ Error creating assist assignment, aborting:",
+              (error as Error).message,
+            );
+          }
+        }
+      }
+
+      console.log("Finished applying assignments");
     } catch (error) {
       console.error("❌ Error parsing LLM response:", (error as Error).message);
       console.log("Response was:", responseText);
@@ -387,49 +771,51 @@ export class CookingSchedule {
     }
   }
 
-  getAssignments(): Array<Assignment> {
-    const assignmentsCopy: Array<Assignment> = [];
-    this.assignments.forEach((assignment, date) => {
-      const lead = assignment.lead;
-      const assistant = assignment.assistant;
-      const assignmentCopy: Assignment = {
-        date,
-        lead,
-        assistant,
-      };
-      assignmentsCopy.push(assignmentCopy);
-    });
-    return assignmentsCopy;
+  async _getCooks(
+    { period }: { period: Period },
+  ): Promise<Set<User> | { error: string }> {
+    const cooks = await this.cooks.find({ period: period }).toArray();
+    const output: Set<User> = new Set();
+    for (const cook of cooks) {
+      output.add(cook._id);
+    }
+    return output;
   }
 
-  validate(assignments: Array<Assignment>): boolean {
-    const totalDays: Map<User, number> = new Map();
-    assignments.forEach((assignment) => {
-      const lead = assignment.lead;
-      let leadDays = totalDays.get(lead);
-      if (!leadDays) {
-        leadDays = 0;
-      }
-      totalDays.set(lead, leadDays + 1);
-      assert(this.checkPreference(assignment, lead));
-      assert(this.checkAvailability(assignment, lead));
-      const assistant = assignment.assistant;
-      if (assistant) {
-        assert(this.checkPreference(assignment, assistant));
-        assert(this.checkAvailability(assignment, assistant));
-        let assistDays = totalDays.get(assistant);
-        if (!assistDays) {
-          assistDays = 0;
-        }
-        totalDays.set(assistant, assistDays + 1);
-      }
-    });
-    totalDays.forEach((days, user) => {
-      const maxDays = this.preferences.get(user)?.maxCookingDays;
-      if (maxDays !== undefined) {
-        assert(maxDays >= days);
-      }
-    });
-    return true;
+  async _getCookingDates(
+    { period }: { period: Period },
+  ): Promise<Set<string> | { error: string }> {
+    const cookingDates = await this.cookingDates.find({ period: period })
+      .toArray();
+    const output: Set<string> = new Set();
+    for (const cookingDate of cookingDates) {
+      output.add(cookingDate.date);
+    }
+    return output;
+  }
+
+  async _getCurrentPeriod(): Promise<Period | { error: string }> {
+    const periodDoc = await this.periods.findOne({ current: true });
+    assertExists(periodDoc);
+    return periodDoc._id;
+  }
+
+  async _getAssignments(
+    { period }: { period: Period },
+  ): Promise<
+    Set<{ lead: string; assistant?: string; date: string }> | { error: string }
+  > {
+    const assignments = await this.assignments.find({ period: period })
+      .toArray();
+    const output: Set<{ lead: User; assistant?: User; date: string }> =
+      new Set();
+    for (const assignment of assignments) {
+      output.add({
+        lead: assignment.lead,
+        assistant: assignment.assistant,
+        date: assignment.date,
+      });
+    }
+    return output;
   }
 }

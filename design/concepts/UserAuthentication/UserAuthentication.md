@@ -1,6 +1,6 @@
 **concept** UserAuthentication
 
-**purpose** checks whether certain users are allowed to perform certain actions, like editing the cooking assignments
+**purpose** to verify whether certain users are allowed to perform certain actions, like editing the cooking assignments
 
 **principle** two users are designated foodstuds; a user must be verified as a foodstud before generating cooking assignments or editing the cooking assignments; users are verified before editing user preferences or availability
 
@@ -24,11 +24,11 @@ CostcoFoodStud is also in Users
 
 **actions**
 
-uploadUser(kerb: String, password: String)
+uploadUser(kerb: String, password: String): User
 
 **requires** no User in Users has the same kerb or the same password
 
-**effect** creates a new User with kerb and password and adds it to Users
+**effect** creates a new User with kerb and password and adds it to Users, returns that User
 
 removeUser(user: User)
 
@@ -36,15 +36,15 @@ removeUser(user: User)
 
 **effect** removes user from Users
 
-updatePassword(user: User, password: String)
+updatePassword(user: User, newPassword: String)
 
-**requires** user is in Users, password is distinct from user's original Password and is not the same as any other Passwords in Users
+**requires** user is in Users, newPassword is distinct from that user's original Password and is distinct from all other Passwords in Users
 
 **effect** sets Password of user to password
 
 login(kerb: String, password: String): User
 
-**requires** User exists in Users with the same kerb and password
+**requires** a User exists in Users with the same kerb and password
 
 **effect** returns that User
 
@@ -62,12 +62,12 @@ setCostcoFoodStud(user: User)
 
 verifyFoodStud(user: User)
 
-**requires** user has the kerb of either ProduceFoodStud or CostcoFoodStud
+**requires** either ProduceFoodStud or CostcoFoodStud is user
 
 **effect** nothing
 
-verifyUser(actingUser: User, targetUser: User): boolean
+verifyUser(actingUser: User, targetUser: User):
 
-**requires** both actingUser and targetUser are in Users and actingUser and targetUser have the same kerb
+**requires** actingUser is equal to targetUser, both are in Users
 
 **effect** nothing
