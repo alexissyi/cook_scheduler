@@ -1,4 +1,4 @@
-import { ID } from "@utils/types.ts";
+import { Empty, ID } from "@utils/types.ts";
 import { equalsUser } from "@utils/utility-functions.ts";
 import { assert } from "jsr:@std/assert/assert";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
@@ -46,12 +46,13 @@ export default class UserAuthenticationConcept {
     this.passwords = this.db.collection(PREFIX + "Passwords");
   }
 
-  async initialize() {
+  async initialize(): Promise<Empty | { error: string }> {
     await this.foodStuds.insertOne({
       _id: freshID(),
       produceFoodStud: null,
       costcoFoodStud: null,
     });
+    return {};
   }
 
   async uploadUser(
@@ -77,7 +78,7 @@ export default class UserAuthenticationConcept {
     return { user: userID };
   }
 
-  async removeUser({ user }: { user: User }): Promise<void> {
+  async removeUser({ user }: { user: User }): Promise<Empty> {
     const userDoc = await this.users.findOne({ _id: user });
     const foodStudDoc = await this.foodStuds.findOne({});
     assertExists(userDoc);
@@ -89,11 +90,12 @@ export default class UserAuthenticationConcept {
     );
     await this.users.deleteOne({ _id: user });
     await this.passwords.deleteOne({ password: password });
+    return {};
   }
 
   async updatePassword(
     { user, newPassword }: { user: User; newPassword: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc);
     const oldPassword = userDoc.password;
@@ -105,6 +107,7 @@ export default class UserAuthenticationConcept {
     await this.users.updateOne({ _id: user }, {
       $set: { password: newPassword },
     });
+    return {};
   }
 
   async login(
@@ -118,27 +121,29 @@ export default class UserAuthenticationConcept {
 
   async setProduceFoodStud(
     { user }: { user: User },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc);
     await this.foodStuds.updateOne({}, {
       $set: { produceFoodStud: userDoc._id },
     });
+    return {};
   }
 
   async setCostcoFoodStud(
     { user }: { user: User },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc);
     await this.foodStuds.updateOne({}, {
       $set: { costcoFoodStud: userDoc._id },
     });
+    return {};
   }
 
   async verifyFoodStud(
     { user }: { user: User },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const foodStuds = await this.foodStuds.findOne({});
     assertExists(foodStuds);
     const produceFoodStud = foodStuds.produceFoodStud;
@@ -146,6 +151,7 @@ export default class UserAuthenticationConcept {
     assert(
       user === produceFoodStud || user === costcoFoodStud,
     );
+    return {};
   }
 
   async verifyUser(
@@ -153,35 +159,40 @@ export default class UserAuthenticationConcept {
       actingUser: User;
       targetUser: User;
     },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     assertEquals(actingUser, targetUser);
     const matchingActingUser = await this.users.findOne({
       _id: actingUser,
     });
     assert(matchingActingUser);
+    return {};
   }
 
-  async _getCostcoFoodStudKerb(): Promise<string | { error: string }> {
+  async _getCostcoFoodStudKerb(): Promise<
+    { costcoFoodStudKerb: string } | { error: string }
+  > {
     const foodStuds = await this.foodStuds.findOne({});
     assertExists(foodStuds, "foodstuds not set");
     const costcoFoodStud = foodStuds.costcoFoodStud;
     assertExists(costcoFoodStud);
     const doc = await this.users.findOne({ _id: costcoFoodStud });
     assertExists(doc);
-    return doc.kerb;
+    return { costcoFoodStudKerb: doc.kerb };
   }
 
-  async _getProduceFoodStudKerb(): Promise<string | { error: string }> {
+  async _getProduceFoodStudKerb(): Promise<
+    { produceFoodStudKerb: string } | { error: string }
+  > {
     const foodStuds = await this.foodStuds.findOne({});
     assertExists(foodStuds, "foodstuds not set");
     const produceFoodStud = foodStuds.produceFoodStud;
     assertExists(produceFoodStud);
     const doc = await this.users.findOne({ _id: produceFoodStud });
     assertExists(doc);
-    return doc.kerb;
+    return { produceFoodStudKerb: doc.kerb };
   }
 
-  async _getUsers(): Promise<Set<User> | { error: string }> {
+  async _getUsers(): Promise<{ users: Set<User> } | { error: string }> {
     const users = await this.users.find().toArray();
     const output: Set<User> = new Set();
 
@@ -189,6 +200,6 @@ export default class UserAuthenticationConcept {
       output.add(userDoc._id);
     });
 
-    return output;
+    return { users: output };
   }
 }

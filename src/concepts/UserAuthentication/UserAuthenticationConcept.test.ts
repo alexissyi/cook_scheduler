@@ -30,7 +30,10 @@ Deno.test("Operational principle: upload users, designate users as foodstuds, us
 
     const user2 = userObject2.user;
 
-    const users = await authentication._getUsers() as Set<User>;
+    const usersObject = await authentication._getUsers() as {
+      users: Set<User>;
+    };
+    const users = usersObject.users;
     assert(users.has(user1));
     assert(users.has(user2));
 
@@ -38,10 +41,15 @@ Deno.test("Operational principle: upload users, designate users as foodstuds, us
 
     await authentication.setCostcoFoodStud({ user: user2 });
 
-    const retrievedProduceFoodStudKerb = await authentication
-      ._getProduceFoodStudKerb();
-    const retrievedCostcoFoodStudKerb = await authentication
-      ._getCostcoFoodStudKerb();
+    const retrievedProduceFoodStudKerbObject = await authentication
+      ._getProduceFoodStudKerb() as { produceFoodStudKerb: string };
+    const retrievedCostcoFoodStudKerbObject = await authentication
+      ._getCostcoFoodStudKerb() as { costcoFoodStudKerb: string };
+
+    const retrievedProduceFoodStudKerb =
+      retrievedProduceFoodStudKerbObject.produceFoodStudKerb;
+    const retrievedCostcoFoodStudKerb =
+      retrievedCostcoFoodStudKerbObject.costcoFoodStudKerb;
     assertEquals(retrievedProduceFoodStudKerb, kerb1);
     assertEquals(retrievedCostcoFoodStudKerb, kerb2);
 
@@ -117,7 +125,10 @@ Deno.test("Action: removeUser", async () => {
     const user2 = userObject2.user;
 
     await authentication.removeUser({ user: user1 });
-    const users = await authentication._getUsers() as Set<User>;
+    const usersObject = await authentication._getUsers() as {
+      users: Set<User>;
+    };
+    const users = usersObject.users;
     assert(!users.has(user1));
   } finally {
     await client.close();

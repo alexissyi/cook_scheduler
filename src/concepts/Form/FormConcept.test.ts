@@ -18,34 +18,38 @@ Deno.test("Operational Principle: can upload question into the form and open the
     const form = new FormConcept(db);
     await form.initialize();
 
-    const formStatus = await form._isOpen();
+    const formStatusObject = await form._isOpen() as { open: boolean };
+    const formStatus = formStatusObject.open;
 
     assert(!formStatus);
 
-    const question = await form.addQuestion({
+    const questionObject = await form.addQuestion({
       questionText: "What's your name?",
-    }) as Question;
+    }) as { question: Question };
+    const question = questionObject.question;
 
     const user = "user1" as User;
 
     await form.unlock();
 
-    assert(await form._isOpen());
+    const openObject = await form._isOpen() as { open: boolean };
+
+    assert(openObject.open);
 
     const responseContent1 = "Bob";
 
-    await form.submitResponse({
+    const responseObject = await form.submitResponse({
       question: question,
       user: user,
       responseContent: responseContent1,
-    }) as Response;
+    }) as { response: Response };
 
     const retrievedResponse = await form._getResponseContent({
       user: user,
       question: question,
-    });
+    }) as { responseContent: boolean | number | string };
 
-    assertEquals(responseContent1, retrievedResponse);
+    assertEquals(responseContent1, retrievedResponse.responseContent);
   } finally {
     await client.close();
   }
@@ -59,37 +63,39 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
     const form = new FormConcept(db);
     await form.initialize();
 
-    const formStatus = await form._isOpen();
-
-    assert(!formStatus);
-
-    const question1 = await form.addQuestion({
+    const question1Object = await form.addQuestion({
       questionText: "What's your name?",
-    }) as Question;
-    const question2 = await form.addQuestion({
+    }) as { question: Question };
+
+    const question1 = question1Object.question;
+    const question2Object = await form.addQuestion({
       questionText: "How old are you?",
-    }) as Question;
+    }) as { question: Question };
+    const question2 = question2Object.question;
 
     const user1 = "user1" as User;
     const user2 = "user2" as User;
 
     await form.unlock();
 
-    assert(await form._isOpen());
+    const formStatusObject = await form._isOpen() as { open: boolean };
+    const formStatus = formStatusObject.open;
+
+    assert(formStatus);
 
     const responseContent1 = 45;
     await form.submitResponse({
       question: question2,
       user: user1,
       responseContent: responseContent1,
-    }) as Response;
+    });
 
     const responseContent2 = 13;
     await form.submitResponse({
       question: question2,
       user: user2,
       responseContent: responseContent2,
-    }) as Response;
+    });
 
     await form.submitResponse({
       question: question1,
@@ -106,15 +112,15 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
     const retrievedResponse1 = await form._getResponseContent({
       user: user1,
       question: question2,
-    });
+    }) as { responseContent: boolean | number | string };
 
     const retrievedResponse2 = await form._getResponseContent({
       user: user2,
       question: question2,
-    });
+    }) as { responseContent: boolean | number | string };
 
-    assertEquals(retrievedResponse1, responseContent1);
-    assertEquals(retrievedResponse2, responseContent2);
+    assertEquals(retrievedResponse1.responseContent, responseContent1);
+    assertEquals(retrievedResponse2.responseContent, responseContent2);
   } finally {
     await client.close();
   }
@@ -130,31 +136,36 @@ Deno.test("Action: deleteResponse and deleteQuestion", async () => {
 
     const formStatus = await form._isOpen();
 
-    assert(!formStatus);
-
-    const question1 = await form.addQuestion({
+    const question1Object = await form.addQuestion({
       questionText: "What's your name?",
-    }) as Question;
+    }) as { question: Question };
+    const question1 = question1Object.question;
 
     const user1 = "user1" as User;
 
     await form.unlock();
 
-    assert(await form._isOpen());
-
-    const response = await form.submitResponse({
+    const responseObject = await form.submitResponse({
       question: question1,
       user: user1,
       responseContent: "Bob",
-    }) as Response;
+    }) as { response: Response };
+
+    const response = responseObject.response;
 
     await form.lock();
 
     await form.deleteResponse({ user: user1, question: question1 });
 
-    const responses = await form._getResponses({ question: question1 }) as Set<
-      Response
-    >;
+    const responsesObject = await form._getResponses({
+      question: question1,
+    }) as {
+      responses: Set<
+        Response
+      >;
+    };
+
+    const responses = responsesObject.responses;
 
     assert(!responses.has(response));
 

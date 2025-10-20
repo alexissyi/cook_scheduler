@@ -4,7 +4,7 @@ import { freshID } from "@utils/database.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
 import { getDay, getMonth, getYear } from "@utils/utility-functions.ts";
-import { ID } from "@utils/types.ts";
+import { Empty, ID } from "@utils/types.ts";
 // all dates represented in YYYY-MM-DD string format
 
 export type User = ID;
@@ -101,17 +101,19 @@ export default class CookingScheduleConcept {
     this.cooks = this.db.collection(PREFIX + "Cooks");
   }
 
-  async addCook({ kerb }: { kerb: string }): Promise<User | { error: string }> {
+  async addCook(
+    { kerb }: { kerb: string },
+  ): Promise<{ user: User } | { error: string }> {
     const matchingCook = await this.cooks.findOne({ kerb: kerb });
     assert(matchingCook === null);
     const cookID = freshID();
     await this.cooks.insertOne({ _id: cookID, kerb: kerb });
-    return cookID;
+    return { user: cookID };
   }
 
   async removeCook(
     { user }: { user: User },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const matchingCook = await this.cooks.findOne({ _id: user });
     const matchingAssignment = await this.assignments.findOne({ user: user });
     assertExists(matchingCook);
@@ -119,11 +121,12 @@ export default class CookingScheduleConcept {
     await this.cooks.deleteOne({ _id: user });
     await this.preferences.deleteMany({ user: user });
     await this.availabilities.deleteMany({ user: user });
+    return {};
   }
 
   async addPeriod(
     { month, year, current }: { month: number; year: number; current: boolean },
-  ): Promise<Period | { error: string }> {
+  ): Promise<{ period: Period } | { error: string }> {
     assert(MONTHS.has(month));
     assert(year >= 0);
     assert(year % 1 === 0);
@@ -140,12 +143,12 @@ export default class CookingScheduleConcept {
       current: current,
     };
     await this.periods.insertOne(periodDoc);
-    return periodID;
+    return { period: periodID };
   }
 
   async setCurrentPeriod(
     { month, year }: { month: number; year: number },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     assert(MONTHS.has(month));
     assert(year >= 0);
     assert(year % 1 === 0);
@@ -154,29 +157,33 @@ export default class CookingScheduleConcept {
       year: year,
     });
     assertExists(existingPeriod);
-    if (existingPeriod.current) return;
+    if (existingPeriod.current) return {};
     await this.periods.updateOne({ month: month, year: year }, {
       $set: {
         current: true,
       },
     });
+    return {};
   }
 
   private async getPeriod(
     { date }: { date: string },
-  ): Promise<Period | { error: string }> {
+  ): Promise<{ period: Period } | { error: string }> {
     const month = getMonth(date);
     const year = getYear(date);
     const periodDoc = await this.periods.findOne({ month: month, year: year });
     assertExists(periodDoc);
     const period = periodDoc._id;
-    return period;
+    return { period: period };
   }
 
   async addCookingDate(
     { date }: { date: string },
-  ): Promise<void | { error: string }> {
-    const period = await this.getPeriod({ date: date }) as Period;
+  ): Promise<Empty | { error: string }> {
+    const periodObject = await this.getPeriod({ date: date }) as {
+      period: Period;
+    };
+    const period = periodObject.period;
     const dateDoc = {
       _id: freshID(),
       period: period,
@@ -186,22 +193,27 @@ export default class CookingScheduleConcept {
       year: getYear(date),
     };
     await this.cookingDates.insertOne(dateDoc);
+    return {};
   }
 
   async removeCookingDate(
     { date }: { date: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const filter = turnDateStringtoDateFilter(date);
     const dateDoc = await this.cookingDates.findOne(filter);
     assertExists(dateDoc);
     await this.cookingDates.deleteOne(filter);
+    return {};
   }
 
   async assignLead(
     { user, date }: { user: User; date: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     try {
-      const period = await this.getPeriod({ date: date }) as Period;
+      const periodObject = await this.getPeriod({ date: date }) as {
+        period: Period;
+      };
+      const period = periodObject.period;
       const filter = turnDateStringtoDateFilter(date);
       const matchingDate = await this.cookingDates.findOne(filter);
       assertExists(matchingDate, "Invalid cooking date");
@@ -241,12 +253,14 @@ export default class CookingScheduleConcept {
       }
     } catch (error) {
       console.error("❌ Error assigning lead:", (error as Error).message);
+      throw error;
     }
+    return {};
   }
 
   async assignAssistant(
     { user, date }: { user: User; date: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     try {
       const matchingDate = await this.cookingDates.findOne({ date: date });
       assertExists(matchingDate, "Invalid cooking date");
@@ -269,19 +283,21 @@ export default class CookingScheduleConcept {
       console.error("❌ Error assigning assistant:", (error as Error).message);
       throw error;
     }
+    return {};
   }
 
   async removeAssignment(
     { date }: { date: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const matchingAssignment = await this.assignments.findOne({ date: date });
     assertExists(matchingAssignment);
     await this.assignments.deleteOne({ date: date });
+    return {};
   }
 
   private async deleteIncompatibleAssignments(
     { preference }: { preference: Preference },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const preferenceDoc = await this.preferences.findOne({ _id: preference });
     assertExists(preferenceDoc);
     const period = preferenceDoc.period;
@@ -360,6 +376,7 @@ export default class CookingScheduleConcept {
         }
       }
     }
+    return {};
   }
 
   async uploadPreference(
@@ -371,7 +388,7 @@ export default class CookingScheduleConcept {
       canAssist: boolean;
       maxCookingDays: number;
     },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     try {
       const matchingUser = await this.cooks.findOne({ _id: user });
       assertExists(matchingUser);
@@ -416,15 +433,19 @@ export default class CookingScheduleConcept {
       console.error("❌ Error uploadign preference:", (error as Error).message);
       throw error;
     }
+    return {};
   }
 
   async addAvailability(
     { user, date }: { user: User; date: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     try {
       const matchingUser = await this.cooks.findOne({ _id: user });
       assertExists(matchingUser);
-      const period = await this.getPeriod({ date: date }) as Period;
+      const periodObject = await this.getPeriod({ date: date }) as {
+        period: Period;
+      };
+      const period = periodObject.period;
 
       const matchingAvailability = await this.availabilities.findOne({
         user: user,
@@ -438,6 +459,7 @@ export default class CookingScheduleConcept {
         date: date,
         period: period,
       });
+      return {};
     } catch (error) {
       console.error("❌ Error adding availability:", (error as Error).message);
       throw error;
@@ -446,7 +468,7 @@ export default class CookingScheduleConcept {
 
   async removeAvailability(
     { user, date }: { user: User; date: string },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     try {
       const matchingUser = await this.cooks.findOne({ _id: user });
       assertExists(matchingUser);
@@ -461,6 +483,7 @@ export default class CookingScheduleConcept {
 
       await this.assignments.deleteMany({ lead: user, date: date });
       await this.assignments.deleteMany({ assistant: user, date: date });
+      return {};
     } catch (error) {
       console.error(
         "❌ Error removing availability:",
@@ -470,7 +493,7 @@ export default class CookingScheduleConcept {
     }
   }
 
-  async generateAssignments(): Promise<void> {
+  async generateAssignments(): Promise<Empty> {
     try {
       // simple greedy (nonoptimal) algorithm: for each day, assign based on following priority
       // 1. solo cooks over lead-assistant pairs
@@ -578,9 +601,9 @@ export default class CookingScheduleConcept {
             }
           }
         }
-
-        console.log("Finished algorithmic generation");
       }
+      console.log("Finished algorithmic generation");
+      return {};
     } catch (error) {
       console.error(
         "❌ Error generating assignments algorithmically:",
@@ -590,9 +613,10 @@ export default class CookingScheduleConcept {
     }
   }
 
-  async generateAssignmentsWithLLM(llm: GeminiLLM): Promise<void> {
+  async generateAssignmentsWithLLM(llm: GeminiLLM): Promise<Empty> {
     try {
-      const prompt = await this.createPrompt() as string;
+      const promptObject = await this.createPrompt() as { prompt: string };
+      const prompt = promptObject.prompt;
       const text = await llm.executeLLM(prompt);
 
       console.log("✅ Received response from Gemini AI!");
@@ -603,13 +627,16 @@ export default class CookingScheduleConcept {
 
       // Parse and apply the assignments
       await this.parseAndApplyAssignments({ responseText: text });
+      return {};
     } catch (error) {
       console.error("❌ Error calling Gemini API:", (error as Error).message);
       throw error;
     }
   }
 
-  private async createPrompt(): Promise<string | { error: string }> {
+  private async createPrompt(): Promise<
+    { prompt: string } | { error: string }
+  > {
     const periodDoc = await this.periods.findOne({ current: true });
     assertExists(periodDoc);
     const period = periodDoc._id;
@@ -716,12 +743,12 @@ export default class CookingScheduleConcept {
 
     Return ONLY the JSON object, no additional text.`;
 
-    return prompt;
+    return { prompt: prompt };
   }
 
   private async parseAndApplyAssignments(
     { responseText }: { responseText: String },
-  ): Promise<void | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     try {
       // Extract JSON from response (in case there's extra text)
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -766,6 +793,7 @@ export default class CookingScheduleConcept {
       }
 
       console.log("Finished applying assignments");
+      return {};
     } catch (error) {
       console.error("❌ Error parsing LLM response:", (error as Error).message);
       console.log("Response was:", responseText);
@@ -775,37 +803,39 @@ export default class CookingScheduleConcept {
 
   async _getCooks(
     { period }: { period: Period },
-  ): Promise<Set<User> | { error: string }> {
+  ): Promise<{ cooks: Set<User> } | { error: string }> {
     const cooks = await this.cooks.find({ period: period }).toArray();
     const output: Set<User> = new Set();
     for (const cook of cooks) {
       output.add(cook._id);
     }
-    return output;
+    return { cooks: output };
   }
 
   async _getCookingDates(
     { period }: { period: Period },
-  ): Promise<Set<string> | { error: string }> {
+  ): Promise<{ cookingDates: Set<string> } | { error: string }> {
     const cookingDates = await this.cookingDates.find({ period: period })
       .toArray();
     const output: Set<string> = new Set();
     for (const cookingDate of cookingDates) {
       output.add(cookingDate.date);
     }
-    return output;
+    return { cookingDates: output };
   }
 
-  async _getCurrentPeriod(): Promise<Period | { error: string }> {
+  async _getCurrentPeriod(): Promise<{ period: Period } | { error: string }> {
     const periodDoc = await this.periods.findOne({ current: true });
     assertExists(periodDoc);
-    return periodDoc._id;
+    return { period: periodDoc._id };
   }
 
   async _getAssignments(
     { period }: { period: Period },
   ): Promise<
-    Set<{ lead: string; assistant?: string; date: string }> | { error: string }
+    { assignments: Set<{ lead: string; assistant?: string; date: string }> } | {
+      error: string;
+    }
   > {
     const assignments = await this.assignments.find({ period: period })
       .toArray();
@@ -818,6 +848,6 @@ export default class CookingScheduleConcept {
         date: assignment.date,
       });
     }
-    return output;
+    return { assignments: output };
   }
 }

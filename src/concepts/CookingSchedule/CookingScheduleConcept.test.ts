@@ -30,14 +30,17 @@ Deno.test("Operational principle: users upload availability and preferences, can
     const scheduler = new CookingScheduleConcept(db);
     const month: number = 10;
     const year: number = 2025;
-    const period = await scheduler.addPeriod({
+    const periodObject = await scheduler.addPeriod({
       month,
       year,
       current: true,
-    }) as Period;
+    }) as { period: Period };
+    const period = periodObject.period;
 
-    const retrievedPeriod = await scheduler._getCurrentPeriod() as Period;
-    assertEquals(retrievedPeriod, period);
+    const retrievedPeriod = await scheduler._getCurrentPeriod() as {
+      period: Period;
+    };
+    assertEquals(retrievedPeriod.period, period);
 
     console.log("Successfully added current month and year");
 
@@ -48,14 +51,20 @@ Deno.test("Operational principle: users upload availability and preferences, can
 
     const retrievedDates = await scheduler._getCookingDates({
       period: period,
-    }) as Set<string>;
-    assert(retrievedDates.has(date1));
-    assert(retrievedDates.has(date2));
+    }) as { cookingDates: Set<string> };
+    assert(retrievedDates.cookingDates.has(date1));
+    assert(retrievedDates.cookingDates.has(date2));
 
     console.log("Successfully added two cooking dates");
 
-    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
-    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
+    const user1Object = await scheduler.addCook({ kerb: "amy1" }) as {
+      user: User;
+    };
+    const user1 = user1Object.user;
+    const user2Object = await scheduler.addCook({ kerb: "bob2" }) as {
+      user: User;
+    };
+    const user2 = user2Object.user;
 
     console.log("Successfully added two cooks");
 
@@ -120,11 +129,12 @@ Deno.test("Operational principle: user upload availability and preferences, algo
 
     const month: number = 10;
     const year: number = 2025;
-    const period = await scheduler.addPeriod({
+    const periodObject = await scheduler.addPeriod({
       month,
       year,
       current: true,
-    }) as Period;
+    }) as { period: Period };
+    const period = periodObject.period;
 
     console.log("Successfully set month and year");
 
@@ -136,7 +146,10 @@ Deno.test("Operational principle: user upload availability and preferences, algo
 
     console.log("Successfully added cooking dates");
 
-    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+    const user1Object = await scheduler.addCook({ kerb: "amy1" }) as {
+      user: User;
+    };
+    const user1 = user1Object.user;
 
     console.log("Successfully added cooks");
 
@@ -177,11 +190,12 @@ Deno.test("Action: generateAssignments", async () => {
     const scheduler = new CookingScheduleConcept(db);
     const month: number = 10;
     const year: number = 2025;
-    const period = await scheduler.addPeriod({
+    const periodObject = await scheduler.addPeriod({
       month,
       year,
       current: true,
-    }) as Period;
+    }) as { period: Period };
+    const period = periodObject.period;
 
     console.log("Successfully set month and year");
 
@@ -196,9 +210,18 @@ Deno.test("Action: generateAssignments", async () => {
 
     console.log("Successfully added four cooking dates");
 
-    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
-    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
-    const user3 = await scheduler.addCook({ kerb: "casey3" }) as User;
+    const user1Object = await scheduler.addCook({ kerb: "amy1" }) as {
+      user: User;
+    };
+    const user1 = user1Object.user;
+    const user2Object = await scheduler.addCook({ kerb: "bob2" }) as {
+      user: User;
+    };
+    const user2 = user2Object.user;
+    const user3Object = await scheduler.addCook({ kerb: "casey3" }) as {
+      user: User;
+    };
+    const user3 = user3Object.user;
 
     console.log("Successfully added three cooks");
 
@@ -258,11 +281,12 @@ Deno.test("Operational principle: user upload availability and preferences, LLM 
   try {
     const month: number = 10;
     const year: number = 2025;
-    const period = await scheduler.addPeriod({
+    const periodObject = await scheduler.addPeriod({
       month,
       year,
       current: true,
-    }) as Period;
+    }) as { period: Period };
+    const period = periodObject.period;
 
     console.log("Successfully set month and year");
 
@@ -274,7 +298,10 @@ Deno.test("Operational principle: user upload availability and preferences, LLM 
 
     console.log("Successfully added cooking dates");
 
-    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
+    const user1Object = await scheduler.addCook({ kerb: "amy1" }) as {
+      user: User;
+    };
+    const user1 = user1Object.user;
 
     console.log("Successfully added cooks");
 
@@ -315,11 +342,12 @@ Deno.test("Action: generateAssignmentsWithLLM", async () => {
   try {
     const month: number = 10;
     const year: number = 2025;
-    const period = await scheduler.addPeriod({
+    const periodObject = await scheduler.addPeriod({
       month,
       year,
       current: true,
-    }) as Period;
+    }) as { period: Period };
+    const period = periodObject.period;
 
     console.log("Successfully set month and year");
 
@@ -334,9 +362,18 @@ Deno.test("Action: generateAssignmentsWithLLM", async () => {
 
     console.log("Successfully added four cooking dates");
 
-    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
-    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
-    const user3 = await scheduler.addCook({ kerb: "casey3" }) as User;
+    const user1Object = await scheduler.addCook({ kerb: "amy1" }) as {
+      user: User;
+    };
+    const user1 = user1Object.user;
+    const user2Object = await scheduler.addCook({ kerb: "bob2" }) as {
+      user: User;
+    };
+    const user2 = user2Object.user;
+    const user3Object = await scheduler.addCook({ kerb: "casey3" }) as {
+      user: User;
+    };
+    const user3 = user3Object.user;
 
     console.log("Successfully added three cooks");
 
@@ -397,11 +434,12 @@ Deno.test("Impossible case", async () => {
     const llm = new GeminiLLM();
     const month: number = 10;
     const year: number = 2025;
-    const period = await scheduler.addPeriod({
+    const periodObject = await scheduler.addPeriod({
       month,
       year,
       current: true,
-    }) as Period;
+    }) as { period: Period };
+    const period = periodObject.period;
 
     console.log("Successfully set month and year");
 
@@ -416,9 +454,18 @@ Deno.test("Impossible case", async () => {
 
     console.log("Successfully added four cooking dates");
 
-    const user1 = await scheduler.addCook({ kerb: "amy1" }) as User;
-    const user2 = await scheduler.addCook({ kerb: "bob2" }) as User;
-    const user3 = await scheduler.addCook({ kerb: "casey3" }) as User;
+    const user1Object = await scheduler.addCook({ kerb: "amy1" }) as {
+      user: User;
+    };
+    const user1 = user1Object.user;
+    const user2Object = await scheduler.addCook({ kerb: "bob2" }) as {
+      user: User;
+    };
+    const user2 = user2Object.user;
+    const user3Object = await scheduler.addCook({ kerb: "casey3" }) as {
+      user: User;
+    };
+    const user3 = user3Object.user;
 
     console.log("Successfully added three cooks");
 
