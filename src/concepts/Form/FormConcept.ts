@@ -27,7 +27,11 @@ interface ResponseDoc {
   responseContent: string | boolean | number;
 }
 
-export class Form {
+/**
+ * @concept Form
+ * @purpose To take in and store user responses for a set of questions
+ */
+export default class FormConcept {
   questions: Collection<QuestionDoc>;
   responses: Collection<ResponseDoc>;
   open: Collection<OpenDoc>;

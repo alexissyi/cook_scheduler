@@ -80,7 +80,11 @@ function turnDateStringtoDateFilter(dateString: string): DateFilter {
 const PREFIX = "CookingSchedule" + ".";
 const MONTHS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 
-export class CookingSchedule {
+/**
+ * @concept CookingSchedule
+ * @purpose To create cooking assignments for the month so we know who cooks when
+ */
+export default class CookingScheduleConcept {
   cooks: Collection<UserDoc>;
   periods: Collection<PeriodDoc>;
   cookingDates: Collection<DateDoc>;

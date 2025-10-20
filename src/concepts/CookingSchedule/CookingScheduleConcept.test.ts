@@ -10,7 +10,8 @@ import {
   assertNotEquals,
 } from "jsr:@std/assert";
 import { testDb } from "@utils/database.ts";
-import { CookingSchedule, Period, User } from "./CookingScheduleConcept.ts";
+import { Period, User } from "./CookingScheduleConcept.ts";
+import CookingScheduleConcept from "./CookingScheduleConcept.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
 
 import { ID } from "@utils/types.ts";
@@ -26,7 +27,7 @@ Deno.test("Operational principle: users upload availability and preferences, can
   const [db, client] = await testDb();
 
   try {
-    const scheduler = new CookingSchedule(db);
+    const scheduler = new CookingScheduleConcept(db);
     const month: number = 10;
     const year: number = 2025;
     const period = await scheduler.addPeriod({
@@ -115,7 +116,7 @@ Deno.test("Operational principle: user upload availability and preferences, algo
   const [db, client] = await testDb();
 
   try {
-    const scheduler = new CookingSchedule(db);
+    const scheduler = new CookingScheduleConcept(db);
 
     const month: number = 10;
     const year: number = 2025;
@@ -173,7 +174,7 @@ Deno.test("Action: generateAssignments", async () => {
   const [db, client] = await testDb();
 
   try {
-    const scheduler = new CookingSchedule(db);
+    const scheduler = new CookingScheduleConcept(db);
     const month: number = 10;
     const year: number = 2025;
     const period = await scheduler.addPeriod({
@@ -251,7 +252,7 @@ Deno.test("Operational principle: user upload availability and preferences, LLM 
   console.log("\n🧪 TEST CASE 4: LLM-Assisted Scheduling");
   console.log("========================================");
   const [db, client] = await testDb();
-  const scheduler = new CookingSchedule(db);
+  const scheduler = new CookingScheduleConcept(db);
   const llm = new GeminiLLM();
 
   try {
@@ -308,7 +309,7 @@ Deno.test("Action: generateAssignmentsWithLLM", async () => {
   console.log("\n🧪 TEST CASE 5: LLM-Assisted Scheduling");
   console.log("========================================");
   const [db, client] = await testDb();
-  const scheduler = new CookingSchedule(db);
+  const scheduler = new CookingScheduleConcept(db);
   const llm = new GeminiLLM();
 
   try {
@@ -392,7 +393,7 @@ Deno.test("Impossible case", async () => {
   const [db, client] = await testDb();
 
   try {
-    const scheduler = new CookingSchedule(db);
+    const scheduler = new CookingScheduleConcept(db);
     const llm = new GeminiLLM();
     const month: number = 10;
     const year: number = 2025;

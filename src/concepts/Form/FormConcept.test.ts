@@ -5,7 +5,8 @@ import {
   assertNotEquals,
 } from "jsr:@std/assert";
 import { testDb } from "@utils/database.ts";
-import { Form, Question, Response, User } from "./FormConcept.ts";
+import { Question, Response, User } from "./FormConcept.ts";
+import FormConcept from "./FormConcept.ts";
 
 import { ID } from "@utils/types.ts";
 
@@ -14,7 +15,7 @@ Deno.test("Operational Principle: can upload question into the form and open the
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const form = new Form(db);
+    const form = new FormConcept(db);
     await form.initialize();
 
     const formStatus = await form._isOpen();
@@ -55,7 +56,7 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const form = new Form(db);
+    const form = new FormConcept(db);
     await form.initialize();
 
     const formStatus = await form._isOpen();
@@ -124,7 +125,7 @@ Deno.test("Action: deleteResponse and deleteQuestion", async () => {
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const form = new Form(db);
+    const form = new FormConcept(db);
     await form.initialize();
 
     const formStatus = await form._isOpen();

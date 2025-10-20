@@ -35,7 +35,7 @@ interface PasswordDoc {
  * @concept UserAuthentication
  * @purpose to verify whether certain users are allowed to perform certain actions, like editing the cooking assignments
  */
-export class UserAuthentication {
+export default class UserAuthenticationConcept {
   private foodStuds: Collection<FoodStudDoc>;
   private users: Collection<UserDoc>;
   private passwords: Collection<PasswordDoc>;

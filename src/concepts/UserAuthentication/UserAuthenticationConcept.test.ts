@@ -2,7 +2,8 @@ import { ID } from "@utils/types.ts";
 import { assert } from "jsr:@std/assert/assert";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
 import { freshID } from "@utils/database.ts";
-import { User, UserAuthentication } from "./UserAuthenticationConcept.ts";
+import { User } from "./UserAuthenticationConcept.ts";
+import UserAuthenticationConcept from "./UserAuthenticationConcept.ts";
 import { testDb } from "@utils/database.ts";
 
 Deno.test("Operational principle: upload users, designate users as foodstuds, users can login", async () => {
@@ -10,7 +11,7 @@ Deno.test("Operational principle: upload users, designate users as foodstuds, us
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const authentication = new UserAuthentication(db);
+    const authentication = new UserAuthenticationConcept(db);
     await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
@@ -59,7 +60,7 @@ Deno.test("Action: updatePassword", async () => {
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const authentication = new UserAuthentication(db);
+    const authentication = new UserAuthenticationConcept(db);
     await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
@@ -96,7 +97,7 @@ Deno.test("Action: removeUser", async () => {
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const authentication = new UserAuthentication(db);
+    const authentication = new UserAuthenticationConcept(db);
     await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
@@ -128,7 +129,7 @@ Deno.test("Action: verifyFoodStud and verifyUser", async () => {
   console.log("==================================");
   const [db, client] = await testDb();
   try {
-    const authentication = new UserAuthentication(db);
+    const authentication = new UserAuthenticationConcept(db);
     await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";

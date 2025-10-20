@@ -1,6 +1,6 @@
 **concept** FormQuestion\[User\]
 
-**purpose** take in user input for a questions
+**purpose** take in and store user responses for a set of questions
 
 **principle** can upload questions into the form and open the form; users can respond to the questions; the responses can be used to guide decisionmaking
 
