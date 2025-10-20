@@ -202,4 +202,20 @@ export default class UserAuthenticationConcept {
 
     return { users: output };
   }
+
+  async _getKerb(
+    { user }: { user: User },
+  ): Promise<{ kerb: string } | { error: string }> {
+    const userDoc = await this.users.findOne({ _id: user });
+    assertExists(userDoc);
+    return { kerb: userDoc.kerb };
+  }
+
+  async _getUser(
+    { kerb }: { kerb: string },
+  ): Promise<{ user: User } | { error: string }> {
+    const userDoc = await this.users.findOne({ kerb: kerb });
+    assertExists(userDoc);
+    return { user: userDoc._id };
+  }
 }

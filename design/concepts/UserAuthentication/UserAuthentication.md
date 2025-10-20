@@ -91,3 +91,15 @@ _getUsers(): Set of User
 **requires** nothing
 
 **effect** returns Users
+
+_getKerb(user: User): String
+
+**requires** user is in Users
+
+**effect** returns the kerb of user
+
+_getUser(kerb: String): User
+
+**requires** there is a User with kerb in Cooks
+
+**effect** returns User associated with kerb

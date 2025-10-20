@@ -167,4 +167,16 @@ _getAssignments(period: Period): Set of Assignments
 **requires** period is in Periods
 
 **effect** returns the Assignments for period
+
+_getKerb(user: User): String
+
+**requires** user is in Users
+
+**effect** returns the kerb of user
+
+_getUser(kerb: String): User
+
+**requires** there is a User with kerb in Cooks
+
+**effect** returns User associated with kerb
     
