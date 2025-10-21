@@ -1308,11 +1308,162 @@
 
 ### GET /api/userAuthentication/_getCostcoFoodStudKerb
 
+**Description:** Get kerb of CostcoFoodStud
+
+**Requirements:**
+- CostcoFoodStud is set
+
+**Effects:**
+- returns kerb of CostcoFoodStud
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "costcoFoodStudKerb": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### GET /api/userAuthentication/_getProduceFoodStudKerb
+
+**Description:** Get kerb of ProduceFoodStud
+
+**Requirements:**
+- ProduceFoodStud is set
+
+**Effects:**
+- returns kerb of ProduceFoodStud
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "produceFoodStudKerb": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
 ### GET /api/userAuthentication/_getUsers
 
+**Description:** Get all registered Users
+
+**Requirements:**
+
+**Effects:**
+- returns Users
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "user": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### GET /api/userAuthentication/_getKerb
 
+**Description:** Get the kerb of a given User
+
+**Requirements:**
+- user is in Users
+
+**Effects:**
+- returns the kerb of user
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "kerb": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### GET /api/userAuthentication/_getUser
+
+**Description:** Get the User associated with a given Kerb
+
+**Requirements:**
+- there is a User with kerb in Cooks
+
+**Effects:**
+- returns User associated with kerb
+
+**Request Body:**
+```json
+{
+  "kerb": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "string": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
