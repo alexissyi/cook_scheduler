@@ -154,22 +154,8 @@ export default class UserAuthenticationConcept {
     return {};
   }
 
-  async verifyUser(
-    { actingUser, targetUser }: {
-      actingUser: User;
-      targetUser: User;
-    },
-  ): Promise<Empty | { error: string }> {
-    assertEquals(actingUser, targetUser);
-    const matchingActingUser = await this.users.findOne({
-      _id: actingUser,
-    });
-    assert(matchingActingUser);
-    return {};
-  }
-
   async _getCostcoFoodStudKerb(): Promise<
-    { costcoFoodStudKerb: string } | { error: string }
+    Array<{ costcoFoodStudKerb: string }> | { error: string }
   > {
     const foodStuds = await this.foodStuds.findOne({});
     assertExists(foodStuds, "foodstuds not set");
@@ -177,11 +163,11 @@ export default class UserAuthenticationConcept {
     assertExists(costcoFoodStud);
     const doc = await this.users.findOne({ _id: costcoFoodStud });
     assertExists(doc);
-    return { costcoFoodStudKerb: doc.kerb };
+    return [{ costcoFoodStudKerb: doc.kerb }];
   }
 
   async _getProduceFoodStudKerb(): Promise<
-    { produceFoodStudKerb: string } | { error: string }
+    Array<{ produceFoodStudKerb: string }> | { error: string }
   > {
     const foodStuds = await this.foodStuds.findOne({});
     assertExists(foodStuds, "foodstuds not set");
@@ -189,33 +175,33 @@ export default class UserAuthenticationConcept {
     assertExists(produceFoodStud);
     const doc = await this.users.findOne({ _id: produceFoodStud });
     assertExists(doc);
-    return { produceFoodStudKerb: doc.kerb };
+    return [{ produceFoodStudKerb: doc.kerb }];
   }
 
-  async _getUsers(): Promise<{ users: Set<User> } | { error: string }> {
+  async _getUsers(): Promise<Array<{ user: User }> | { error: string }> {
     const users = await this.users.find().toArray();
-    const output: Set<User> = new Set();
+    const output: Array<{ user: User }> = [];
 
     users.forEach((userDoc) => {
-      output.add(userDoc._id);
+      output.push({ user: userDoc._id });
     });
 
-    return { users: output };
+    return output;
   }
 
   async _getKerb(
     { user }: { user: User },
-  ): Promise<{ kerb: string } | { error: string }> {
+  ): Promise<Array<{ kerb: string }> | { error: string }> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc);
-    return { kerb: userDoc.kerb };
+    return [{ kerb: userDoc.kerb }];
   }
 
   async _getUser(
     { kerb }: { kerb: string },
-  ): Promise<{ user: User } | { error: string }> {
+  ): Promise<Array<{ user: User }> | { error: string }> {
     const userDoc = await this.users.findOne({ kerb: kerb });
     assertExists(userDoc);
-    return { user: userDoc._id };
+    return [{ user: userDoc._id }];
   }
 }

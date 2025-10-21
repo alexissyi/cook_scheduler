@@ -30,10 +30,15 @@ Deno.test("Operational principle: upload users, designate users as foodstuds, us
 
     const user2 = userObject2.user;
 
-    const usersObject = await authentication._getUsers() as {
-      users: Set<User>;
-    };
-    const users = usersObject.users;
+    const usersObject = await authentication._getUsers() as Array<{
+      user: User;
+    }>;
+
+    const users: Set<User> = new Set();
+
+    usersObject.forEach((userObject) => {
+      users.add(userObject.user);
+    });
     assert(users.has(user1));
     assert(users.has(user2));
 
@@ -42,14 +47,14 @@ Deno.test("Operational principle: upload users, designate users as foodstuds, us
     await authentication.setCostcoFoodStud({ user: user2 });
 
     const retrievedProduceFoodStudKerbObject = await authentication
-      ._getProduceFoodStudKerb() as { produceFoodStudKerb: string };
+      ._getProduceFoodStudKerb() as Array<{ produceFoodStudKerb: string }>;
     const retrievedCostcoFoodStudKerbObject = await authentication
-      ._getCostcoFoodStudKerb() as { costcoFoodStudKerb: string };
+      ._getCostcoFoodStudKerb() as Array<{ costcoFoodStudKerb: string }>;
 
     const retrievedProduceFoodStudKerb =
-      retrievedProduceFoodStudKerbObject.produceFoodStudKerb;
+      retrievedProduceFoodStudKerbObject[0].produceFoodStudKerb;
     const retrievedCostcoFoodStudKerb =
-      retrievedCostcoFoodStudKerbObject.costcoFoodStudKerb;
+      retrievedCostcoFoodStudKerbObject[0].costcoFoodStudKerb;
     assertEquals(retrievedProduceFoodStudKerb, kerb1);
     assertEquals(retrievedCostcoFoodStudKerb, kerb2);
 
@@ -125,18 +130,23 @@ Deno.test("Action: removeUser", async () => {
     const user2 = userObject2.user;
 
     await authentication.removeUser({ user: user1 });
-    const usersObject = await authentication._getUsers() as {
-      users: Set<User>;
-    };
-    const users = usersObject.users;
+    const usersObject = await authentication._getUsers() as Array<{
+      user: User;
+    }>;
+
+    const users: Set<User> = new Set();
+
+    usersObject.forEach((userObject) => {
+      users.add(userObject.user);
+    });
     assert(!users.has(user1));
   } finally {
     await client.close();
   }
 });
 
-Deno.test("Action: verifyFoodStud and verifyUser", async () => {
-  console.log("\n🧪 TEST CASE 4: Action verifyFoodStud and verifyUser");
+Deno.test("Action: verifyFoodStud", async () => {
+  console.log("\n🧪 TEST CASE 4: Action verifyFoodStud");
   console.log("==================================");
   const [db, client] = await testDb();
   try {
@@ -164,8 +174,6 @@ Deno.test("Action: verifyFoodStud and verifyUser", async () => {
     await authentication.setCostcoFoodStud({ user: user2 });
 
     await authentication.verifyFoodStud({ user: user1 });
-
-    await authentication.verifyUser({ actingUser: user2, targetUser: user2 });
   } finally {
     await client.close();
   }

@@ -24,6 +24,12 @@ CostcoFoodStud is also in Users
 
 **actions**
 
+initialize()
+
+**requires** no Users have been uploaded
+
+**effect** sets ProduceFoodStud and CostcoFoodStud to null
+
 uploadUser(kerb: String, password: String): User
 
 **requires** no User in Users has the same kerb or the same password
@@ -40,7 +46,7 @@ updatePassword(user: User, newPassword: String)
 
 **requires** user is in Users, newPassword is distinct from that user's original Password and is distinct from all other Passwords in Users
 
-**effect** sets Password of user to password
+**effect** sets Password of user to newPassword
 
 login(kerb: String, password: String): User
 
@@ -66,39 +72,33 @@ verifyFoodStud(user: User)
 
 **effect** nothing
 
-verifyUser(actingUser: User, targetUser: User):
-
-**requires** actingUser is equal to targetUser, both are in Users
-
-**effect** nothing
-
 **queries**
 
-_getCostcoFoodStudKerb(): String
+_getCostcoFoodStudKerb(): Array of String
 
 **requires** CostcoFoodStud is set
 
 **effect** returns kerb of CostcoFoodStud
 
-_getProduceFoodStudKerb(): String
+_getProduceFoodStudKerb(): Array of String
 
 **requires** ProduceFoodStud is set
 
 **effect** returns kerb of ProduceFoodStud
 
-_getUsers(): Set of User
+_getUsers(): Array of User
 
 **requires** nothing
 
 **effect** returns Users
 
-_getKerb(user: User): String
+_getKerb(user: User): Array of String
 
 **requires** user is in Users
 
 **effect** returns the kerb of user
 
-_getUser(kerb: String): User
+_getUser(kerb: String): Array of User
 
 **requires** there is a User with kerb in Cooks
 

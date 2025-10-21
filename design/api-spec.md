@@ -950,7 +950,7 @@
 }
 ```
 
-### POST /api/form/\_getResponseContent
+### GET /api/form/_getResponseContent
 
 **Description:** get the content of a Response
 
@@ -973,6 +973,7 @@
 ```json
 [
   {
+    "responseContent": "string | boolean | number"
   }
 ]
 ```
@@ -984,14 +985,334 @@
 }
 ```
 
-### POST /api/form/\_isOpen
+### GET /api/form/_isOpen
 
-### POST /api/form/\_getResponses
+**Description:** get whether the form is Open
+
+**Requirements:**
+
+**Effects:**
+- returns Open
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "open": "boolean"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### GET /api/form/_getResponses
+
+**Description:** get all Responses for a given Question
+
+**Requirements:**
+- question is in Questions
+
+**Effects:**
+- returns all Responses associated with question
+
+**Request Body:**
+```json
+{
+  "question": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "response": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
 ---
 
 # API Specification: UserAuthentication Concept
 
+**Purpose:** To verify whether certain users are allowed to perform certain actions, like editing the cooking assignments
+
+---
+
 ## API Endpoints
 
-### POST /api/userAuthentication/
+### POST /api/userAuthentication/initialize
+
+**Description:** initializes the authenticator by setting ProduceFoodStud and CostcoFoodStud to null
+
+**Requirements:**
+- no Users have been uploaded
+
+**Effects:**
+- sets ProduceFoodStud and CostcoFoodStud to null
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/uploadUser
+
+**Description:** Registers a User with a kerb and password
+
+**Requirements:**
+- no User in Users has the same kerb or the same password
+
+**Effects:**
+- creates a new User with kerb and password and adds it to Users, returns that User
+
+**Request Body:**
+```json
+{
+  "kerb": "string",
+  "password": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+  "user": "string"
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/removeUser
+
+**Description:** Deregisters a User
+
+**Requirements:**
+- user is in Users
+- user is not ProduceFoodStud
+- user is not CostcoFoodStud
+
+**Effects:**
+- removes user from Users
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/updatePassword
+
+**Description:** Updates a User's Password
+
+**Requirements:**
+- user is in Users
+- newPassword is distinct from that user's original Password and all other Passwords in Users
+
+**Effects:**
+- sets Password of user to newPassword
+
+**Request Body:**
+```json
+{
+  "user": "string",
+  "newPassword": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/login
+
+**Description:** Return a User for a given Kerb and Password
+
+**Requirements:**
+- a User exists in Users with the same kerb and password
+
+**Effects:**
+- returns the associated User
+
+**Request Body:**
+```json
+{
+  "kerb": "string",
+  "password": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+  "user": "string"
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/setProduceFoodStud
+
+**Description:** Sets ProduceFoodStud to a given User
+
+**Requirements:**
+- user is in Users
+
+**Effects:**
+- sets ProduceFoodStud to user
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/setCostcoFoodStud
+
+**Description:** Sets CostcoFoodStud to a given User
+
+**Requirements:**
+- user is in Users
+
+**Effects:**
+- sets CostcoFoodStud to user
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/userAuthentication/verifyFoodStud
+
+**Description:** Only runs without error if a given User is a Foodstud
+
+**Requirements:**
+- either ProduceFoodStud or CostcoFoodStud is user
+
+**Effects:**
+- nothing
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### GET /api/userAuthentication/_getCostcoFoodStudKerb
+
+### GET /api/userAuthentication/_getProduceFoodStudKerb
+
+### GET /api/userAuthentication/_getUsers
+
+### GET /api/userAuthentication/_getKerb
+
+### GET /api/userAuthentication/_getUser
+
