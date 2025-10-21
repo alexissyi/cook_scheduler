@@ -733,20 +733,265 @@
 
 ## API Endpoints
 
+### POST /api/form/initialize
+
+**Description:** Initialize the form to allow other actions
+
+**Requirements:**
+- no Questions have been added
+
+**Effects:**
+- sets Open to False
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### POST /api/form/submitResponse
+
+**Description:** Submit a Response for a given Question
+
+**Requirements:**
+- Open is True
+- question is in Questions
+
+**Effects:**
+- creates a new Response with user, question and responseText and adds it to Responses if there is no Response associated with user and question yet
+- otherwise, updates Response to responseContent for the Response associated with user and question
+
+**Request Body:**
+```json
+{
+  "user": "string",
+  "question": "string",
+  "responseContent": "boolean | number | string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+  "response": "string"
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
 ### POST /api/form/addQuestion
 
+**Description:** Adds a Question to the form
+
+**Requirements:**
+- Open is False
+
+**Effects:**
+- creates a new Question with QuestionText set to questionText and adds it to Questions, returns that Question
+
+**Request Body:**
+```json
+{
+  "questionText": "string",
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+  "question": "string"
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### POST /api/form/deleteResponse
+
+**Description:** Delete a Response for a given User and Question
+
+**Requirements:**
+- Open is False
+- there exists a Reponse associated with user and question in Responses
+
+**Effects:**
+- removes the Response associated with user and question from Responses
+
+**Request Body:**
+```json
+{
+  "user": "string",
+  "question": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
 ### POST /api/form/deleteQuestion
 
+**Description:** Delete a Response for a given User and Question
+
+**Requirements:**
+- Open is False
+- there exists a Reponse associated with user and question in Responses
+
+**Effects:**
+- removes the Response associated with user and question from Responses
+
+**Request Body:**
+```json
+{
+  "user": "string",
+  "question": "string"
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### POST /api/form/lock
+
+**Description:** Locks the form to allow editing, preventing more responses from being added
+
+**Requirements:**
+- Open is True
+
+**Effects:**
+- sets Open to False
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
 ### POST /api/form/unlock
 
+**Description:** Opens the form to responses
+
+**Requirements:**
+- Open is False
+
+**Effects:**
+- sets Open to True
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Action):**
+```json
+{
+}
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ### POST /api/form/\_getResponseContent
+
+**Description:** get the content of a Response
+
+**Requirements:**
+- question is in Questions
+- there is a Response associated with user and question in Responses
+
+**Effects:**
+- returns the responseContent of that associated Response
+
+**Request Body:**
+```json
+{
+  "user": "string",
+  "question": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
 
 ### POST /api/form/\_isOpen
 
 ### POST /api/form/\_getResponses
+
+---
+
+# API Specification: UserAuthentication Concept
+
+## API Endpoints
+
+### POST /api/userAuthentication/

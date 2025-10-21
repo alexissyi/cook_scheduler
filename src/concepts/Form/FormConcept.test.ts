@@ -18,8 +18,8 @@ Deno.test("Operational Principle: can upload question into the form and open the
     const form = new FormConcept(db);
     await form.initialize();
 
-    const formStatusObject = await form._isOpen() as { open: boolean };
-    const formStatus = formStatusObject.open;
+    const formStatusObject = await form._isOpen() as Array<{ open: boolean }>;
+    const formStatus = formStatusObject[0].open;
 
     assert(!formStatus);
 
@@ -32,9 +32,9 @@ Deno.test("Operational Principle: can upload question into the form and open the
 
     await form.unlock();
 
-    const openObject = await form._isOpen() as { open: boolean };
+    const openObject = await form._isOpen() as Array<{ open: boolean }>;
 
-    assert(openObject.open);
+    assert(openObject[0].open);
 
     const responseContent1 = "Bob";
 
@@ -47,9 +47,9 @@ Deno.test("Operational Principle: can upload question into the form and open the
     const retrievedResponse = await form._getResponseContent({
       user: user,
       question: question,
-    }) as { responseContent: boolean | number | string };
+    }) as Array<{ responseContent: boolean | number | string }>;
 
-    assertEquals(responseContent1, retrievedResponse.responseContent);
+    assertEquals(responseContent1, retrievedResponse[0].responseContent);
   } finally {
     await client.close();
   }
@@ -77,11 +77,6 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
     const user2 = "user2" as User;
 
     await form.unlock();
-
-    const formStatusObject = await form._isOpen() as { open: boolean };
-    const formStatus = formStatusObject.open;
-
-    assert(formStatus);
 
     const responseContent1 = 45;
     await form.submitResponse({
@@ -112,15 +107,15 @@ Deno.test("Operational Principle: can upload multiple questions into the form an
     const retrievedResponse1 = await form._getResponseContent({
       user: user1,
       question: question2,
-    }) as { responseContent: boolean | number | string };
+    }) as Array<{ responseContent: boolean | number | string }>;
 
     const retrievedResponse2 = await form._getResponseContent({
       user: user2,
       question: question2,
-    }) as { responseContent: boolean | number | string };
+    }) as Array<{ responseContent: boolean | number | string }>;
 
-    assertEquals(retrievedResponse1.responseContent, responseContent1);
-    assertEquals(retrievedResponse2.responseContent, responseContent2);
+    assertEquals(retrievedResponse1[0].responseContent, responseContent1);
+    assertEquals(retrievedResponse2[0].responseContent, responseContent2);
   } finally {
     await client.close();
   }
@@ -159,15 +154,16 @@ Deno.test("Action: deleteResponse and deleteQuestion", async () => {
 
     const responsesObject = await form._getResponses({
       question: question1,
-    }) as {
-      responses: Set<
-        Response
-      >;
-    };
+    }) as Array<{
+      response: Response;
+    }>;
 
-    const responses = responsesObject.responses;
+    const responsesSet: Set<Response> = new Set();
+    responsesObject.forEach((responseObject) => {
+      responsesSet.add(responseObject.response);
+    });
 
-    assert(!responses.has(response));
+    assert(!responsesSet.has(response));
 
     await form.deleteQuestion({ question: question1 });
   } finally {

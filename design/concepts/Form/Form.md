@@ -22,6 +22,12 @@ a Boolean Open
 
 **actions**
 
+initialize()
+
+**requires** no Questions have been added
+
+**effect** sets Open to False
+
 submitResponse(user: User, question: Question, responseContent: String or Boolean or Number)
 
 **requires** Open is True, question is in Questions
@@ -30,7 +36,7 @@ submitResponse(user: User, question: Question, responseContent: String or Boolea
 
 addQuestion(questionText: QuestionText): Question
 
-**requires** Responses is empty and Open is False
+**requires** Open is False
 
 **effect** creates a new Question with QuestionText set to questionText and adds it to Questions, returns that Question
 
@@ -60,11 +66,11 @@ unlock()
 
 **queries**
 
-_getResponseContent(user: User, question: Question): String or Boolean or Number
+_getResponseContent(user: User, question: Question): Array of String or Boolean or Number
 
 **requires** question is in Questions, there is a Response associated with user and question in Responses
 
-**effect** returns the responseContent of that  associated Response
+**effect** returns the responseContent of that associated Response
 
 _isOpen(): boolean
 
