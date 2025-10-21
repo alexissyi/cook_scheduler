@@ -84,13 +84,13 @@ setCurrentPeriod(month: Month, year: Year)
 
 addCookingDate(date: Date):
 
-**requires** date is not in CookingDates and date is in a Period in Periods
+**requires** date is in YYYY-MM-DD format; date is not in CookingDates and date is in a Period in Periods
 
 **effect** adds date to CookingDates
 
 removeCookingDate(date: Date):
 
-**requires** date is in CookingDates
+**requires** date is in YYYY-MM-DD format; date is in CookingDates
 
 **effect** removes date from CookingDates
 
@@ -102,13 +102,13 @@ assignLead(user: User, date: Date):
 
 assignAssistant(user: User, date: Date)
 
-**requires** date is in CookingDates; user is in Cooks; there is already an Assignment with this date in the set of Assignments, the lead for that assignment has CanLead marked as True in their associated Preference
+**requires** date is in CookingDates; user is in Cooks; there is already an Assignment with this date in the set of Assignments, the lead for that assignment has CanLead marked as True in their associated Preference; user has CanAssist marked as True in their associated Preference
 
 **effect** sets Assistant in the existing Assignment for this date to be user
 
 removeAssignment(date: Date)
 
-**requires** there is an Assignment with this date in the set of Assignments
+**requires** date is in YYYY-MM-DD format; there is an Assignment with this date in the set of Assignments
 
 **effect** removes this Assignment from the set of Assignments
 
@@ -118,15 +118,15 @@ uploadPreference(user: User, period: Period, canSolo: boolean, canLead: boolean,
 
 **effect** creates a new Preference with these fields and adds it to Preferences, or updates Preferences if there is already a preference for user and period, removes all incompatible Assignments
 
-addAvailability(user: User, date: Date)
+async addAvailability(user: User, date: Date)
 
-**requires** user is in Cooks and date is in CookingDates
+**requires** user is in Cooks; date is in YYYY-MM-DD format and date is in CookingDates
 
-**effect** adds availability to Availabilities or updates Availabilities if there is already a availability for the user, removes all incompatible Assignments
+**effect** adds this date to Availabilities; removes all incompatible Assignments
 
-removeAvailability(user: User, date: Date)
+async removeAvailability(user: User, date: Date)
 
-**requires** user is in Cooks and there is an Availability with this user and date in Availabilities
+**requires** user is in Cooks; date is in YYYY-MM-DD format; there is an Availability with this user and date in Availabilities
 
 **effect** removes corresponding Availability from Availabilities and removes all incompatible Assignments
 
