@@ -492,7 +492,7 @@
 }
 ```
 
-### POST /api/cookScheduler/generateAssignmentsWithLLM()
+### POST /api/cookScheduler/generateAssignmentsWithLLM
 
 **Description:** Generates and creates a set of assignments algorithmically based on preferences and availabilities
 
@@ -522,7 +522,7 @@
 }
 ```
 
-### POST /api/cookScheduler/\_getCooks()
+### POST /api/cookScheduler/\_getCooks
 
 **Description:** Get all registered Users
 
@@ -555,5 +555,198 @@
 }
 ```
 
+### POST /api/cookScheduler/\_getCookingDates
+
+**Description:** Get all cooking dates associated with a given period
+
+**Requirements:**
+- period is in Periods
+
+**Effects:**
+-  returns Users associated with period
+
+**Request Body:**
+```json
+{
+  "period": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "cookingDate": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/cookScheduler/\_getCurrentPeriod
+
+**Description:** Get the current period
+
+**Requirements:**
+- there exists a current Period in Periods
+
+**Effects:**
+-  returns the Period where current is True
+
+**Request Body:**
+```json
+{
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "period": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/cookScheduler/\_getAssignments
+
+**Description:** Get all assignments for a given period
+
+**Requirements:**
+- period is in Periods
+
+**Effects:**
+- returns the Assignments for period
+
+**Request Body:**
+```json
+{
+  "period": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "assignment": {
+      "lead": "string",
+      "assistant": "string | undefined",
+      "date": "string"
+    }
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/cookScheduler/\_getKerb
+
+**Description:** Get the kerb of a User
+
+**Requirements:**
+- user is in Cooks
+
+**Effects:**
+- returns the kerb of user
+
+**Request Body:**
+```json
+{
+  "user": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "kerb": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
+### POST /api/cookScheduler/\_getCook
+
+**Description:** Get the User associated with a kerb
+
+**Requirements:**
+- there is a User with kerb in Cooks
+
+**Effects:**
+- returns User associated with kerb
+
+**Request Body:**
+```json
+{
+  "kerb": "string"
+}
+```
+
+**Success Response Body (Query):**
+```json
+[
+  {
+    "user": "string"
+  }
+]
+```
+
+**Error Response Body:**
+```json
+{
+  "error": "string"
+}
+```
+
 ---
-*(Repeat for each action and query)*
+
+# API Specification: Form Concept
+
+**Purpose:** To take in and store user responses for a set of questions
+
+---
+
+## API Endpoints
+
+### POST /api/form/submitResponse
+
+### POST /api/form/addQuestion
+
+### POST /api/form/deleteResponse
+
+### POST /api/form/deleteQuestion
+
+### POST /api/form/lock
+
+### POST /api/form/unlock
+
+### POST /api/form/\_getResponseContent
+
+### POST /api/form/\_isOpen
+
+### POST /api/form/\_getResponses

@@ -144,37 +144,37 @@ async generateAssignmentsWithLLM()
 
 **queries**
 
-_getCooks(period: Period): Set of User
+_getCooks(period: Period): Array of User
 
 **requires** period is in Periods
 
 **effect** returns Users associated with period
 
-_getCookingDates(period: Period): Set of Date
+_getCookingDates(period: Period): Array of Date
 
 **requires** period is in Periods
 
 **effect** returns CookingDates associated with period
 
-_getCurrentPeriod(): Period
+_getCurrentPeriod(): Array of Period
 
 **requires** there exists a current Period in Periods
 
 **effect** returns the Period where current is True
 
-_getAssignments(period: Period): Set of Assignments
+_getAssignments(period: Period): Array of Assignments
 
 **requires** period is in Periods
 
 **effect** returns the Assignments for period
 
-_getKerb(user: User): String
+_getKerb(user: User): Array of String
 
-**requires** user is in Users
+**requires** user is in Cooks
 
 **effect** returns the kerb of user
 
-_getUser(kerb: String): User
+_getUser(kerb: String): Array of User
 
 **requires** there is a User with kerb in Cooks
 

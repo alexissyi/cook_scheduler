@@ -37,10 +37,11 @@ Deno.test("Operational principle: users upload availability and preferences, can
     }) as { period: Period };
     const period = periodObject.period;
 
-    const retrievedPeriod = await scheduler._getCurrentPeriod() as {
-      period: Period;
-    };
-    assertEquals(retrievedPeriod.period, period);
+    const retrievedPeriod = await scheduler._getCurrentPeriod() as Array<
+      { period: Period }
+    >;
+
+    assertEquals(retrievedPeriod[0].period, period);
 
     console.log("Successfully added current month and year");
 
@@ -51,9 +52,14 @@ Deno.test("Operational principle: users upload availability and preferences, can
 
     const retrievedDates = await scheduler._getCookingDates({
       period: period,
-    }) as { cookingDates: Set<string> };
-    assert(retrievedDates.cookingDates.has(date1));
-    assert(retrievedDates.cookingDates.has(date2));
+    }) as Array<{ cookingDate: string }>;
+
+    const datesSet: Set<string> = new Set();
+    retrievedDates.forEach((dateObject) => {
+      datesSet.add(dateObject.cookingDate);
+    });
+    assert(datesSet.has(date1));
+    assert(datesSet.has(date2));
 
     console.log("Successfully added two cooking dates");
 

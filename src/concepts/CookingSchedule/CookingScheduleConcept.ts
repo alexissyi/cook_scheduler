@@ -803,67 +803,73 @@ export default class CookingScheduleConcept {
 
   async _getCooks(
     { period }: { period: Period },
-  ): Promise<{ cooks: Set<User> } | { error: string }> {
+  ): Promise<Array<{ cook: User }> | { error: string }> {
     const cooks = await this.cooks.find({ period: period }).toArray();
-    const output: Set<User> = new Set();
+    const output: Array<{ cook: User }> = [];
     for (const cook of cooks) {
-      output.add(cook._id);
+      output.push({ cook: cook._id });
     }
-    return { cooks: output };
+    return output;
   }
 
   async _getCookingDates(
     { period }: { period: Period },
-  ): Promise<{ cookingDates: Set<string> } | { error: string }> {
+  ): Promise<Array<{ cookingDate: string }> | { error: string }> {
     const cookingDates = await this.cookingDates.find({ period: period })
       .toArray();
-    const output: Set<string> = new Set();
+    const output: Array<{ cookingDate: string }> = [];
     for (const cookingDate of cookingDates) {
-      output.add(cookingDate.date);
+      output.push({ cookingDate: cookingDate.date });
     }
-    return { cookingDates: output };
+    return output;
   }
 
-  async _getCurrentPeriod(): Promise<{ period: Period } | { error: string }> {
+  async _getCurrentPeriod(): Promise<
+    Array<{ period: Period }> | { error: string }
+  > {
     const periodDoc = await this.periods.findOne({ current: true });
     assertExists(periodDoc);
-    return { period: periodDoc._id };
+    return [{ period: periodDoc._id }];
   }
 
   async _getAssignments(
     { period }: { period: Period },
   ): Promise<
-    { assignments: Set<{ lead: string; assistant?: string; date: string }> } | {
+    | Array<{ assignment: { lead: string; assistant?: string; date: string } }>
+    | {
       error: string;
     }
   > {
     const assignments = await this.assignments.find({ period: period })
       .toArray();
-    const output: Set<{ lead: User; assistant?: User; date: string }> =
-      new Set();
+    const output: Array<
+      { assignment: { lead: string; assistant?: string; date: string } }
+    > = [];
     for (const assignment of assignments) {
-      output.add({
-        lead: assignment.lead,
-        assistant: assignment.assistant,
-        date: assignment.date,
+      output.push({
+        assignment: {
+          lead: assignment.lead,
+          assistant: assignment.assistant,
+          date: assignment.date,
+        },
       });
     }
-    return { assignments: output };
+    return output;
   }
 
   async _getKerb(
     { user }: { user: User },
-  ): Promise<{ kerb: string } | { error: string }> {
+  ): Promise<Array<{ kerb: string }> | { error: string }> {
     const userDoc = await this.cooks.findOne({ _id: user });
     assertExists(userDoc);
-    return { kerb: userDoc.kerb };
+    return [{ kerb: userDoc.kerb }];
   }
 
   async _getUser(
     { kerb }: { kerb: string },
-  ): Promise<{ user: User } | { error: string }> {
+  ): Promise<Array<{ user: User }> | { error: string }> {
     const userDoc = await this.cooks.findOne({ kerb: kerb });
     assertExists(userDoc);
-    return { user: userDoc._id };
+    return [{ user: userDoc._id }];
   }
 }
