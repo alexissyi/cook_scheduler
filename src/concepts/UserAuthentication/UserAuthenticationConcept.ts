@@ -16,6 +16,7 @@ interface UserDoc {
   _id: User;
   kerb: string;
   password: string;
+  loggedIn: boolean;
 }
 
 /**
@@ -73,7 +74,12 @@ export default class UserAuthenticationConcept {
     await this.passwords.insertOne({ _id: passwordID, password: password });
 
     const userID = freshID();
-    const user: UserDoc = { _id: userID, kerb: kerb, password: password };
+    const user: UserDoc = {
+      _id: userID,
+      kerb: kerb,
+      password: password,
+      loggedIn: false,
+    };
     await this.users.insertOne(user);
     return { user: userID };
   }
@@ -105,7 +111,7 @@ export default class UserAuthenticationConcept {
     });
     assert(matchingPassword === null);
     await this.users.updateOne({ _id: user }, {
-      $set: { password: newPassword },
+      $set: { password: newPassword, loggedIn: false },
     });
     return {};
   }
@@ -116,7 +122,23 @@ export default class UserAuthenticationConcept {
     const userDoc = await this.users.findOne({ kerb: kerb });
     assertExists(userDoc);
     assertEquals(userDoc.password, password);
+    assert(!userDoc.loggedIn);
+    await this.users.updateOne({ _id: userDoc._id }, {
+      $set: { loggedIn: true },
+    });
     return { user: userDoc._id };
+  }
+
+  async logout(
+    { user }: { user: User },
+  ): Promise<Empty | { error: string }> {
+    const userDoc = await this.users.findOne({ _id: user });
+    assertExists(userDoc);
+    assert(userDoc.loggedIn);
+    await this.users.updateOne({ _id: userDoc._id }, {
+      $set: { loggedIn: false },
+    });
+    return {};
   }
 
   async setProduceFoodStud(

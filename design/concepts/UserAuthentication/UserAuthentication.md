@@ -16,6 +16,8 @@ a Set of User Users with
 
   a String Password
 
+  a Boolean loggedIn
+
 **invariants**
 
 ProduceFoodStud is also in Users
@@ -46,13 +48,19 @@ updatePassword(user: User, newPassword: String)
 
 **requires** user is in Users, newPassword is distinct from that user's original Password and is distinct from all other Passwords in Users
 
-**effect** sets Password of user to newPassword
+**effect** sets Password of user to newPassword, sets loggedIn of user to False
 
 login(kerb: String, password: String): User
 
-**requires** a User exists in Users with the same kerb and password
+**requires** a User exists in Users with the same kerb and password, loggedIn is False for that User
 
-**effect** returns that User
+**effect** sets loggedIn to True for that User and returns that User
+
+logout(user: User)
+
+**requires** user is in Users, loggedIn is True for that User
+
+**effect** sets loggedIn to False for that User
 
 setProduceFoodStud(user: User)
 
@@ -73,6 +81,12 @@ verifyFoodStud(user: User)
 **effect** nothing
 
 **queries**
+
+_isLoggedIn(user: User): Array of Boolean
+
+**requires** user is in Users
+
+**effect** returns isLoggedIn for user
 
 _getCostcoFoodStudKerb(): Array of String
 
