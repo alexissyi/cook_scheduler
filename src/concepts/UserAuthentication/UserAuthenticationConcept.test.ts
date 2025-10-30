@@ -1,7 +1,5 @@
-import { ID } from "@utils/types.ts";
 import { assert } from "jsr:@std/assert/assert";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
-import { freshID } from "@utils/database.ts";
 import { User } from "./UserAuthenticationConcept.ts";
 import UserAuthenticationConcept from "./UserAuthenticationConcept.ts";
 import { testDb } from "@utils/database.ts";
@@ -174,6 +172,27 @@ Deno.test("Action: verifyFoodStud", async () => {
     await authentication.setCostcoFoodStud({ user: user2 });
 
     await authentication.verifyFoodStud({ user: user1 });
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Action: log in as admin", async () => {
+  console.log("\n🧪 TEST CASE 4: Action verifyFoodStud");
+  console.log("==================================");
+  const [db, client] = await testDb();
+  try {
+    const authentication = new UserAuthenticationConcept(db);
+    await authentication.initialize();
+    const kerb1 = "admin";
+    const password1 = "adminPass";
+
+    const userObject = await authentication.login({
+      kerb: kerb1,
+      password: password1,
+    }) as { user: User };
+
+    await authentication._isLoggedIn({ user: userObject.user });
   } finally {
     await client.close();
   }

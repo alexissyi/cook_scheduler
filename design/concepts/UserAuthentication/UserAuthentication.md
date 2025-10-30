@@ -6,6 +6,8 @@
 
 **state**
 
+a User Admin
+
 a User ProduceFoodStud
 
 a User CostcoFoodStud
@@ -24,41 +26,49 @@ ProduceFoodStud is also in Users
 
 CostcoFoodStud is also in Users
 
+Admin is not in Users
+
 **actions**
 
 initialize()
 
 **requires** no Users have been uploaded
 
-**effect** sets ProduceFoodStud and CostcoFoodStud to null
+**effect** sets ProduceFoodStud and CostcoFoodStud to null, sets Admin to a User
 
 uploadUser(kerb: String, password: String): User
 
-**requires** no User in Users has the same kerb or the same password
+**requires** no User in Users has the same kerb, Admin does not have the same kerb
 
 **effect** creates a new User with kerb and password and adds it to Users, returns that User
 
 removeUser(user: User)
 
-**requires** user is in Users, user is not ProduceFoodStud, user is not CostcoFoodStud
+**requires** user is in Users, user is not ProduceFoodStud or CostcoFoodStud
 
 **effect** removes user from Users
 
 updatePassword(user: User, newPassword: String)
 
-**requires** user is in Users, newPassword is distinct from that user's original Password and is distinct from all other Passwords in Users
+**requires** user is in Users, newPassword is distinct from user's original Password
 
-**effect** sets Password of user to newPassword, sets loggedIn of user to False
+**effect** sets Password of user to newPassword
+
+updateKerb(user: User, newKerb: String)
+
+**requires** user is in Users, newKerb is distinct from user's original kerb
+
+**effect** sets Kerb of user to kerb
 
 login(kerb: String, password: String): User
 
-**requires** a User exists in Users with the same kerb and password, loggedIn is False for that User
+**requires** a User exists in Users with the same kerb and password
 
 **effect** sets loggedIn to True for that User and returns that User
 
 logout(user: User)
 
-**requires** user is in Users, loggedIn is True for that User
+**requires** user is in Users
 
 **effect** sets loggedIn to False for that User
 
@@ -81,6 +91,18 @@ verifyFoodStud(user: User)
 **effect** nothing
 
 **queries**
+
+_isFoodStud(user: User): Array of Boolean
+
+**requires** user is in Users
+
+**effect** returns whether or not user is either CostcoFoodStud or ProduceFoodStud
+
+_isAdmin(user: User): Array of Boolean
+
+**requires** user is in Users
+
+**effect** returns whether or not user is Admin
 
 _isLoggedIn(user: User): Array of Boolean
 
@@ -117,3 +139,4 @@ _getUser(kerb: String): Array of User
 **requires** there is a User with kerb in Cooks
 
 **effect** returns User associated with kerb
+
