@@ -686,7 +686,11 @@ export default class CookingScheduleConcept {
       console.log("======================\n");
 
       // Parse and apply the assignments
-      await this.parseAndApplyAssignments({ responseText: text });
+      try {
+        await this.parseAndApplyAssignments({ responseText: text });
+      } catch (error) {
+        console.log("Failed to parse and apply LLM response");
+      }
       return {};
     } catch (error) {
       console.error("❌ Error calling Gemini API:", (error as Error).message);
