@@ -1,11 +1,5 @@
 import { assert } from "jsr:@std/assert/assert";
-import {
-  Collection,
-  DataKey,
-  Db,
-  IdPServerResponse,
-  MongoMissingCredentialsError,
-} from "npm:mongodb";
+import { Collection, Db } from "npm:mongodb";
 import { freshID } from "@utils/database.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
@@ -206,6 +200,7 @@ export default class CookingScheduleConcept {
   ): Promise<Empty | { error: string }> {
     await this.cookingDates.deleteMany({ date: date });
     await this.assignments.deleteMany({ date: date });
+    await this.availabilities.deleteMany({ date: date });
     return {};
   }
 
@@ -1071,5 +1066,21 @@ export default class CookingScheduleConcept {
         maxCookingDays: 0,
       }];
     }
+  }
+
+  async _getCandidateCooks(
+    { date }: { date: string },
+  ): Promise<Array<{ user: User }> | { error: string }> {
+    const matchingDate = await this.cookingDates.findOne({ date: date });
+    assertExists(matchingDate, `Date ${date} is not a cooking date`);
+
+    const candidateCooks = await this.availabilities.find({
+      date: date,
+    }).toArray();
+    const output: Array<{ user: User }> = [];
+    candidateCooks.forEach((c) => {
+      output.push({ user: c.user });
+    });
+    return output;
   }
 }
