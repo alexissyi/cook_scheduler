@@ -132,6 +132,21 @@ Deno.test("Operational principle: users upload availability and preferences, can
       maxCookingDays: 1,
     });
 
+    const user1Preference = await scheduler._getPreference({
+      user: user1,
+      period: period,
+    });
+
+    assert(user1Preference, `Preference for user not successfully uploaded`);
+
+    assert(user1Preference[0].canSolo, `User said they could solo`);
+
+    assertEquals(
+      user1Preference[0].maxCookingDays,
+      2,
+      `Incorrect amount of max cooking days`,
+    );
+
     console.log("Successfully uploaded preferences");
 
     await scheduler.assignLead({ user: user1, date: date1 });

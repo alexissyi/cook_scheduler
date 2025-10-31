@@ -1042,7 +1042,7 @@ export default class CookingScheduleConcept {
     });
     assertExists(matchingCook, "User not a cook for this period");
     const preference = await this.preferences.findOne({
-      cook: user,
+      user: user,
       period: period,
     });
     if (preference) {
