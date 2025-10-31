@@ -286,12 +286,14 @@ export default class UserAuthenticationConcept {
     }
   }
 
-  async _getUsers(): Promise<Array<{ user: User }> | { error: string }> {
+  async _getUsers(): Promise<
+    Array<{ user: User; kerb: string }> | { error: string }
+  > {
     const users = await this.users.find({ isAdmin: false }).toArray();
-    const output: Array<{ user: User }> = [];
+    const output: Array<{ user: User; kerb: string }> = [];
 
     users.forEach((userDoc) => {
-      output.push({ user: userDoc._id });
+      output.push({ user: userDoc._id, kerb: userDoc.kerb });
     });
 
     return output;
