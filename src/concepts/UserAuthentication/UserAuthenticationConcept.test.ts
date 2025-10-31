@@ -10,7 +10,6 @@ Deno.test("Operational principle: upload users, designate users as foodstuds, us
   const [db, client] = await testDb();
   try {
     const authentication = new UserAuthenticationConcept(db);
-    await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
     const userObject1 = await authentication.uploadUser({
@@ -72,7 +71,6 @@ Deno.test("Action: updatePassword", async () => {
   const [db, client] = await testDb();
   try {
     const authentication = new UserAuthenticationConcept(db);
-    await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
     const userObject1 = await authentication.uploadUser({
@@ -109,7 +107,6 @@ Deno.test("Action: removeUser", async () => {
   const [db, client] = await testDb();
   try {
     const authentication = new UserAuthenticationConcept(db);
-    await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
     const userObject1 = await authentication.uploadUser({
@@ -149,7 +146,6 @@ Deno.test("Action: verifyFoodStud", async () => {
   const [db, client] = await testDb();
   try {
     const authentication = new UserAuthenticationConcept(db);
-    await authentication.initialize();
     const kerb1 = "amy1";
     const password1 = "p1";
     const userObject1 = await authentication.uploadUser({
@@ -183,7 +179,6 @@ Deno.test("Action: log in as admin", async () => {
   const [db, client] = await testDb();
   try {
     const authentication = new UserAuthenticationConcept(db);
-    await authentication.initialize();
     const kerb1 = "admin";
     const password1 = "adminPass";
 
