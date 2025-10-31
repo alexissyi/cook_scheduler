@@ -58,7 +58,7 @@ addPeriod(period: Period, current: boolean)
 
 **requires** nothing
 
-**effect**  adds period to Periods with Current set to current; if current is True, marks all other Periods as not current (current = False)
+**effect**  adds period to Periods with Current set to current and Open set to False; if current is True, marks all other Periods as not current (current = False)
 
 removePeriod(period: Period, current: boolean)
 
@@ -71,6 +71,18 @@ setCurrentPeriod(period: Period)
 **requires** period is in Periods
 
 **effect** sets period to current, marks all other Periods as not current
+
+openPeriod(period: Period)
+
+**requires** period is in Periods
+
+**effect** sets Open for period to True
+
+closePeriod(period: Period)
+
+**requires** period is in Periods
+
+**effect** sets Open for period to False
 
 addCook(user: User, period: Period)
 

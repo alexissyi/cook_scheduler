@@ -1,5 +1,11 @@
 import { assert } from "jsr:@std/assert/assert";
-import { Collection, DataKey, Db, IdPServerResponse } from "npm:mongodb";
+import {
+  Collection,
+  DataKey,
+  Db,
+  IdPServerResponse,
+  MongoMissingCredentialsError,
+} from "npm:mongodb";
 import { freshID } from "@utils/database.ts";
 import { GeminiLLM } from "../../utils/gemini-llm.ts";
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
@@ -203,14 +209,24 @@ export default class CookingScheduleConcept {
     return {};
   }
 
-  async togglePeriod(
+  async openPeriod(
     { period }: { period: string },
   ): Promise<Empty | { error: string }> {
     const matchingPeriod = await this.periods.findOne({ period: period });
     assertExists(matchingPeriod, "Period is not registered");
-    const oldStatus = matchingPeriod.open;
     await this.periods.updateOne({ period: period }, {
-      $set: { open: !oldStatus },
+      $set: { open: true },
+    });
+    return {};
+  }
+
+  async closePeriod(
+    { period }: { period: string },
+  ): Promise<Empty | { error: string }> {
+    const matchingPeriod = await this.periods.findOne({ period: period });
+    assertExists(matchingPeriod, "Period is not registered");
+    await this.periods.updateOne({ period: period }, {
+      $set: { open: false },
     });
     return {};
   }
@@ -238,7 +254,7 @@ export default class CookingScheduleConcept {
       const matchingPeriod = await this.periods.findOne({
         period: period,
       });
-      assertExists(matchingPeriod, "Period is not registered");
+      assertExists(matchingPeriod, `Period ${period} not registered`);
       assert(matchingPeriod.open, "Period is not open");
 
       const matchingPreference = await this.preferences.findOne({
@@ -290,7 +306,7 @@ export default class CookingScheduleConcept {
     try {
       const period = getPeriod(date);
       const matchingPeriod = await this.periods.findOne({ period: period });
-      assertExists(matchingPeriod, "Period not registered");
+      assertExists(matchingPeriod, `Period ${period} not registered`);
       assert(matchingPeriod.open, "Period not open");
       const matchingCook = await this.cooks.findOne({
         user: user,
@@ -300,12 +316,15 @@ export default class CookingScheduleConcept {
       const matchingCookingDate = await this.cookingDates.findOne({
         date: date,
       });
-      assertExists(matchingCookingDate, "Date is not a cooking date");
+      assertExists(matchingCookingDate, ` ${date} is not a cooking date`);
       const matchingAvailability = await this.availabilities.findOne({
         user: user,
         date: date,
       });
-      assert(matchingAvailability === null, "Availability already added");
+      assert(
+        matchingAvailability === null,
+        `Availability already added for ${date}`,
+      );
 
       await this.availabilities.insertOne({
         _id: freshID(),
@@ -331,7 +350,7 @@ export default class CookingScheduleConcept {
       });
       assertExists(matchingUser, "User is not a cook for this period");
       const matchingPeriod = await this.periods.findOne({ period: period });
-      assertExists(matchingPeriod, "Period not registered");
+      assertExists(matchingPeriod, `Period ${period} is not registered`);
       assert(matchingPeriod.open, "Period not open");
 
       await this.availabilities.deleteOne({ user: user, date: date });
@@ -673,10 +692,9 @@ export default class CookingScheduleConcept {
     }
   }
 
-  async generateAssignmentsWithLLM(
-    llm: GeminiLLM,
-  ): Promise<Empty | { error: string }> {
+  async generateAssignmentsWithLLM(): Promise<Empty | { error: string }> {
     try {
+      const llm = new GeminiLLM();
       const promptObject = await this.createPrompt() as { prompt: string };
       const prompt = promptObject.prompt;
       const text = await llm.executeLLM(prompt);
@@ -867,19 +885,28 @@ export default class CookingScheduleConcept {
     }
   }
 
-  async _isRegistered(
+  async _isRegisteredPeriod(
     { period }: { period: string },
-  ): Promise<Array<{ isRegistered: boolean }> | { error: string }> {
+  ): Promise<Array<{ isRegisteredPeriod: boolean }> | { error: string }> {
     const matchingPeriod = await this.periods.findOne({ period: period });
-    return [{ isRegistered: matchingPeriod ? true : false }];
+    return [{ isRegisteredPeriod: matchingPeriod ? true : false }];
+  }
+
+  async _isCurrentPeriod(
+    { period }: { period: string },
+  ): Promise<Array<{ isCurrentPeriod: boolean }> | { error: string }> {
+    const matchingPeriod = await this.periods.findOne({
+      period: period,
+      current: true,
+    });
+    return [{ isCurrentPeriod: matchingPeriod ? true : false }];
   }
 
   async _isOpen(
     { period }: { period: string },
   ): Promise<Array<{ isOpen: boolean }> | { error: string }> {
     const matchingPeriod = await this.periods.findOne({ period: period });
-    assertExists(matchingPeriod, "Period is not registered");
-    return [{ isOpen: matchingPeriod.open }];
+    return [{ isOpen: matchingPeriod ? matchingPeriod.open : false }];
   }
 
   async _getCooks(
@@ -891,6 +918,16 @@ export default class CookingScheduleConcept {
       output.push({ cook: cook.user });
     }
     return output;
+  }
+
+  async _isRegisteredCook(
+    { user, period }: { user: User; period: string },
+  ): Promise<Array<{ isRegisteredCook: boolean }> | { error: string }> {
+    const matchingCook = await this.cooks.findOne({
+      period: period,
+      user: user,
+    });
+    return [{ isRegisteredCook: matchingCook ? true : false }];
   }
 
   async _getCookingDates(
@@ -968,14 +1005,14 @@ export default class CookingScheduleConcept {
     { user, period }: { user: User; period: string },
   ): Promise<Array<{ date: string }> | { error: string }> {
     const matchingPeriod = await this.periods.findOne({ period: period });
-    assertExists(matchingPeriod, "Period not registered");
+    assertExists(matchingPeriod, `Period ${period} not registered`);
     const matchingCook = await this.cooks.findOne({
       user: user,
       period: period,
     });
     assertExists(matchingCook, "User not a cook for this period");
     const availability = await this.availabilities.find({
-      cook: user,
+      user: user,
       period: period,
     }).toArray();
     const output: Array<{ date: string }> = [];
@@ -998,7 +1035,7 @@ export default class CookingScheduleConcept {
     >
   > {
     const matchingPeriod = await this.periods.findOne({ period: period });
-    assertExists(matchingPeriod, "Period not registered");
+    assertExists(matchingPeriod, `Period ${period} not registered`);
     const matchingCook = await this.cooks.findOne({
       user: user,
       period: period,
@@ -1008,13 +1045,31 @@ export default class CookingScheduleConcept {
       cook: user,
       period: period,
     });
-    assertExists(preference, "Preference not uploaded yet");
-    const output = [{
-      canLead: preference.canLead,
-      canSolo: preference.canSolo,
-      canAssist: preference.canAssist,
-      maxCookingDays: preference.maxCookingDays,
-    }];
-    return output;
+    if (preference) {
+      const output = [{
+        canLead: preference.canLead,
+        canSolo: preference.canSolo,
+        canAssist: preference.canAssist,
+        maxCookingDays: preference.maxCookingDays,
+      }];
+      return output;
+    } else {
+      const newPreference = {
+        _id: freshID(),
+        user: user,
+        period: period,
+        canLead: false,
+        canSolo: false,
+        canAssist: false,
+        maxCookingDays: 0,
+      };
+      await this.preferences.insertOne(newPreference);
+      return [{
+        canLead: false,
+        canSolo: false,
+        canAssist: false,
+        maxCookingDays: 0,
+      }];
+    }
   }
 }

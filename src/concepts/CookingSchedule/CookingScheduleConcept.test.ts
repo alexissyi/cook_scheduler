@@ -37,12 +37,12 @@ Deno.test("Operational principle: users upload availability and preferences, can
     const isOpen = isOpenObject[0].isOpen;
     assert(!isOpen, "Periods should by default be closed");
 
-    await scheduler.togglePeriod({ period: period });
+    await scheduler.openPeriod({ period: period });
     const isOpenObject2 = await scheduler._isOpen({ period: period }) as Array<
       { isOpen: boolean }
     >;
     const isOpen2 = isOpenObject2[0].isOpen;
-    assert(isOpen2, "Periods should be open after toggling");
+    assert(isOpen2, "Periods should be open after opening");
 
     const retrievedPeriod = await scheduler._getCurrentPeriod() as Array<
       { period: string }
@@ -50,10 +50,10 @@ Deno.test("Operational principle: users upload availability and preferences, can
 
     assertEquals(retrievedPeriod[0].period, period);
 
-    const isRegisteredObject = await scheduler._isRegistered({
+    const isRegisteredObject = await scheduler._isRegisteredPeriod({
       period: period,
-    }) as Array<{ isRegistered: boolean }>;
-    const isRegistered = isRegisteredObject[0].isRegistered;
+    }) as Array<{ isRegisteredPeriod: boolean }>;
+    const isRegistered = isRegisteredObject[0].isRegisteredPeriod;
     assert(isRegistered, "Period should be registered");
 
     console.log("Successfully added current period");
@@ -63,10 +63,10 @@ Deno.test("Operational principle: users upload availability and preferences, can
     await scheduler.addPeriod({ period: period2, current: false });
     await scheduler.removePeriod({ period: period2 });
 
-    const isRegistered2Object = await scheduler._isRegistered({
+    const isRegistered2Object = await scheduler._isRegisteredPeriod({
       period: period2,
-    }) as Array<{ isRegistered: boolean }>;
-    const isRegistered2 = isRegistered2Object[0].isRegistered;
+    }) as Array<{ isRegisteredPeriod: boolean }>;
+    const isRegistered2 = isRegistered2Object[0].isRegisteredPeriod;
     assert(!isRegistered2, "Period should not be registered");
 
     console.log("Successfully removed a different period");
@@ -98,6 +98,18 @@ Deno.test("Operational principle: users upload availability and preferences, can
     console.log("Successfully added two cooks");
 
     await scheduler.addAvailability({ user: user1, date: date1 });
+
+    const user1Availability = await scheduler._getAvailability({
+      user: user1,
+      period: period,
+    }) as Array<{ date: string }>;
+
+    assertEquals(user1Availability.length, 1, "Wrong amount of availability");
+    assertEquals(
+      user1Availability[0].date,
+      date1,
+      "Wrong date in availability",
+    );
     await scheduler.addAvailability({ user: user1, date: date2 });
     await scheduler.addAvailability({ user: user2, date: date1 });
 
@@ -161,7 +173,7 @@ Deno.test("Operational principle: user upload availability and preferences, algo
       current: true,
     });
 
-    await scheduler.togglePeriod({ period: period });
+    await scheduler.openPeriod({ period: period });
 
     console.log("Successfully set month and year");
 
@@ -219,7 +231,7 @@ Deno.test("Action: generateAssignments", async () => {
       current: true,
     });
 
-    await scheduler.togglePeriod({ period: period });
+    await scheduler.openPeriod({ period: period });
     console.log("Successfully set month and year");
 
     const date1: string = "2025-10-01";
@@ -294,7 +306,6 @@ Deno.test("Operational principle: user upload availability and preferences, LLM 
   console.log("\n🧪 TEST CASE 4: LLM-Assisted Scheduling");
   console.log("========================================");
   const [db, client] = await testDb();
-  const llm = new GeminiLLM();
 
   try {
     const scheduler = new CookingScheduleConcept(db);
@@ -304,7 +315,7 @@ Deno.test("Operational principle: user upload availability and preferences, LLM 
       current: true,
     });
 
-    await scheduler.togglePeriod({ period: period });
+    await scheduler.openPeriod({ period: period });
 
     console.log("Successfully set month and year");
 
@@ -336,7 +347,7 @@ Deno.test("Operational principle: user upload availability and preferences, LLM 
 
     console.log("Successfully uploaded preferences");
 
-    await scheduler.generateAssignmentsWithLLM(llm);
+    await scheduler.generateAssignmentsWithLLM();
 
     console.log("Successfully made assignments with LLM");
   } finally {
@@ -353,7 +364,6 @@ Deno.test("Action: generateAssignmentsWithLLM", async () => {
   console.log("========================================");
   const [db, client] = await testDb();
   const scheduler = new CookingScheduleConcept(db);
-  const llm = new GeminiLLM();
 
   try {
     const period = "2025-10";
@@ -361,7 +371,7 @@ Deno.test("Action: generateAssignmentsWithLLM", async () => {
       period: period,
       current: true,
     });
-    await scheduler.togglePeriod({ period: period });
+    await scheduler.openPeriod({ period: period });
 
     console.log("Successfully set month and year");
 
@@ -422,7 +432,7 @@ Deno.test("Action: generateAssignmentsWithLLM", async () => {
     });
     console.log("Successfully uploaded preferences");
 
-    await scheduler.generateAssignmentsWithLLM(llm);
+    await scheduler.generateAssignmentsWithLLM();
 
     console.log("Successfully made assignments");
   } finally {
@@ -441,14 +451,13 @@ Deno.test("Impossible case", async () => {
 
   try {
     const scheduler = new CookingScheduleConcept(db);
-    const llm = new GeminiLLM();
     const period = "2025-10";
     await scheduler.addPeriod({
       period: period,
       current: true,
     });
 
-    await scheduler.togglePeriod({ period: period });
+    await scheduler.openPeriod({ period: period });
 
     console.log("Successfully set month and year");
 
@@ -509,7 +518,7 @@ Deno.test("Impossible case", async () => {
     });
     console.log("Successfully uploaded preferences");
 
-    await scheduler.generateAssignmentsWithLLM(llm);
+    await scheduler.generateAssignmentsWithLLM();
 
     console.log("Successfully made assignments");
   } finally {
