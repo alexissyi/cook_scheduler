@@ -8,25 +8,25 @@
 
 ### POST /api/cookScheduler/addCook
 
-**Description:** Registers a new User via their kerb
+**Description:** Registers a new User for a given Period
 
 **Requirements:**
-- no User in Cooks has this kerb
+- period is in Periods, user is not in Cooks for period
 
 **Effects:**
-- creates a new User with this kerb, adds it to Cooks and returns it
+- adds user to Cooks for period
 
 **Request Body:**
 ```json
 {
-  "kerb": "string",
+  "user": "string",
+  "period": "string"
 }
 ```
 
 **Success Response Body (Action):**
 ```json
 {
-  "user": "string",
 }
 ```
 
@@ -39,18 +39,19 @@
 
 ### POST /api/cookScheduler/removeCook
 
-**Description:** Remove an existing User
+**Description:** Remove an existing User for a given Period
 
 **Requirements:**
-- user is in Cooks and no Assignment is associated with user
+- user is in Cooks
 
 **Effects:**
-- removes user and any associated Preference or Availability
+- removes user and any associated Preference, Availability, or Assignments
 
 **Request Body:**
 ```json
 {
   "user": "string",
+  "period": "string"
 }
 ```
 
@@ -74,21 +75,20 @@
 - nothing
 
 **Effects:**
-- creates a new Period with month, year and current
-- if current is True, marks all other Periods as not current (current = False) - returns new Period
+- creates a new Period with current
+- if current is True, marks all other Periods as not current (current = False)
 
 **Request Body:**
 ```json
 {
-  "month": "number",
-  "year": "number",
+  "period": "string",
+  "current": "string"
 }
 ```
 
 **Success Response Body (Action):**
 ```json
 {
-  "period": "string"
 }
 ```
 
@@ -104,17 +104,16 @@
 **Description:** Sets a period as the current period for scheduling
 
 **Requirements:**
-- there is a Period in Periods with month and year
+- period is in Periods
 
 **Effects:**
-- marks that corresponding Period as current
+- sets period to current
 - marks all other Periods as not current
 
 **Request Body:**
 ```json
 {
-  "month": "number",
-  "year": "number",
+  "period": "year"
 }
 ```
 

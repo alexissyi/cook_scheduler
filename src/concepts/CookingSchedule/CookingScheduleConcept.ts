@@ -343,7 +343,7 @@ export default class CookingScheduleConcept {
         "❌ Error removing availability:",
         (error as Error).message,
       );
-      throw error;
+      return { error: (error as Error).message };
     }
   }
 
@@ -403,7 +403,7 @@ export default class CookingScheduleConcept {
       }
     } catch (error) {
       console.error("❌ Error assigning lead:", (error as Error).message);
-      throw error;
+      return { error: (error as Error).message };
     }
     return {};
   }
@@ -453,7 +453,7 @@ export default class CookingScheduleConcept {
       });
     } catch (error) {
       console.error("❌ Error assigning assistant:", (error as Error).message);
-      throw error;
+      return { error: (error as Error).message };
     }
     return {};
   }
@@ -553,7 +553,7 @@ export default class CookingScheduleConcept {
     return {};
   }
 
-  async generateAssignments(): Promise<Empty> {
+  async generateAssignments(): Promise<Empty | { error: string }> {
     try {
       // simple greedy (nonoptimal) algorithm: for each day, assign based on following priority
       // 1. solo cooks over lead-assistant pairs
@@ -669,11 +669,13 @@ export default class CookingScheduleConcept {
         "❌ Error generating assignments algorithmically:",
         (error as Error).message,
       );
-      throw error;
+      return { error: (error as Error).message };
     }
   }
 
-  async generateAssignmentsWithLLM(llm: GeminiLLM): Promise<Empty> {
+  async generateAssignmentsWithLLM(
+    llm: GeminiLLM,
+  ): Promise<Empty | { error: string }> {
     try {
       const promptObject = await this.createPrompt() as { prompt: string };
       const prompt = promptObject.prompt;
@@ -686,15 +688,12 @@ export default class CookingScheduleConcept {
       console.log("======================\n");
 
       // Parse and apply the assignments
-      try {
-        await this.parseAndApplyAssignments({ responseText: text });
-      } catch (error) {
-        console.log("Failed to parse and apply LLM response");
-      }
+
+      await this.parseAndApplyAssignments({ responseText: text });
       return {};
     } catch (error) {
       console.error("❌ Error calling Gemini API:", (error as Error).message);
-      throw error;
+      return { error: "hi" };
     }
   }
 
@@ -864,7 +863,7 @@ export default class CookingScheduleConcept {
         (error as Error).message,
       );
       console.log("Response was:", responseText);
-      throw error;
+      return { error: (error as Error).message };
     }
   }
 

@@ -70,19 +70,19 @@ setCurrentPeriod(period: Period)
 
 **requires** period is in Periods
 
-**effect** period as current, marks all other Periods as not current
+**effect** sets period to current, marks all other Periods as not current
 
-addCook(user: User, period: Period): User
+addCook(user: User, period: Period)
 
-**requires** period is in Periods, User is not in Cooks for period
+**requires** period is in Periods, user is not in Cooks for period
 
-**effect** adds User to Cooks for period
+**effect** adds user to Cooks for period
 
-removeCook(user: User):
+removeCook(user: User)
 
-**requires** user is in Cooks and no Assignment is associated with user
+**requires** user is in Cooks
         
-**effect** removes user and any associated Preference or Availability
+**effect** removes user and any associated Preference, Availability, or Assignments
 
 addCookingDate(date: Date):
 

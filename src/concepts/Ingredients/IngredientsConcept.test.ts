@@ -40,3 +40,52 @@ Deno.test("Operational principle: upload ingredients and collate them", async ()
     await client.close();
   }
 });
+
+Deno.test("Operational principle: upload ingredients and collate them", async () => {
+  console.log("\n🧪 TEST CASE 2: Operational principle, more complex");
+  console.log("==================================");
+  const [db, client] = await testDb();
+  try {
+    const ingredientsConcept = new IngredientsConcept(db);
+
+    const date1 = "2025-10-31";
+    await ingredientsConcept.addDate({ date: date1 });
+
+    const date2 = "2025-11-3";
+    await ingredientsConcept.addDate({ date: date2 });
+
+    const ingredient1 = {
+      date: date1,
+      item: "salt",
+      quantity: 5,
+      unit: "tbsp",
+    };
+
+    const ingredient2 = {
+      date: date1,
+      item: "pepper",
+      quantity: 4,
+      unit: "tbsp",
+    };
+    const ingredient3 = {
+      date: date2,
+      item: "salt",
+      quantity: 30,
+      unit: "tbsp",
+    };
+
+    await ingredientsConcept.addIngredient(ingredient1);
+    await ingredientsConcept.addIngredient(ingredient2);
+    await ingredientsConcept.addIngredient(ingredient3);
+
+    const shoppingList = await ingredientsConcept._getShoppingList({
+      dates: [date1, date2],
+    }) as Array<
+      { ingredient: { item: string; quantity: number; unit: string } }
+    >;
+
+    assertEquals(shoppingList.length, 2);
+  } finally {
+    await client.close();
+  }
+});
