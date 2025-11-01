@@ -115,12 +115,6 @@ Deno.test("Operational principle: users upload availability and preferences, can
 
     console.log("Successfully added availabilities");
 
-    const candidateCooks = await scheduler._getCandidateCooks({
-      date: date1,
-    }) as Array<{ user: User }>;
-
-    assertEquals(candidateCooks.length, 2);
-
     await scheduler.uploadPreference({
       user: user1,
       period: period,
@@ -142,6 +136,12 @@ Deno.test("Operational principle: users upload availability and preferences, can
       user: user1,
       period: period,
     });
+
+    const candidateCooks = await scheduler._getCandidateCooks({
+      date: date1,
+    }) as Array<{ user: User }>;
+
+    assertEquals(candidateCooks.length, 2);
 
     assert(user1Preference, `Preference for user not successfully uploaded`);
 

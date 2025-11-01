@@ -399,6 +399,19 @@ export default class CookingScheduleConcept {
         "User cannot be a lead or solo",
       );
 
+      const maxCookingDays = matchingPreference.maxCookingDays;
+
+      const existingAssignments = await this._getUserAssignments({
+        user: user,
+        period: period,
+      }) as Array<
+        { assignment: { lead: User; assistant: User; date: string } }
+      >;
+
+      if (maxCookingDays <= existingAssignments.length) {
+        return { error: "Cannot assign this user to any more days" };
+      }
+
       const matchingAssignment = await this.assignments.findOne({
         date: date,
       });
@@ -455,6 +468,19 @@ export default class CookingScheduleConcept {
       assertExists(matchingPreference, "User has not uploaded preferences");
 
       assert(matchingPreference.canAssist, "This user cannot assist");
+
+      const maxCookingDays = matchingPreference.maxCookingDays;
+
+      const existingAssignments = await this._getUserAssignments({
+        user: user,
+        period: period,
+      }) as Array<
+        { assignment: { lead: User; assistant: User; date: string } }
+      >;
+
+      if (maxCookingDays <= existingAssignments.length) {
+        return { error: "Cannot assign this user to any more days" };
+      }
 
       const matchingAssignment = await this.assignments.findOne({ date: date });
       assertExists(
@@ -601,7 +627,7 @@ export default class CookingScheduleConcept {
         const availabilities = await this.availabilities.find({ date: date })
           .toArray();
         let solo: User | null = null;
-        let maxSoloAssignments = -1;
+        let maxSoloAssignments = 0;
 
         // go user by user to check for who to assign to this day
         for (const availability of availabilities) {
@@ -625,7 +651,7 @@ export default class CookingScheduleConcept {
           await this.assignLead({ user: solo, date: date });
         } else {
           let lead: User | null = null;
-          let maxLeadAssignments = -1;
+          let maxLeadAssignments = 0;
 
           for (const availability of availabilities) {
             const user: User = availability.user;
@@ -646,7 +672,7 @@ export default class CookingScheduleConcept {
 
           if (lead !== null) {
             let assist: User | null = null;
-            let maxAssistAssignments = -1;
+            let maxAssistAssignments = 0;
             assignmentsLeftPerUser.set(lead, maxLeadAssignments - 1);
             await this.assignLead({ user: lead, date: date });
 
@@ -880,6 +906,13 @@ export default class CookingScheduleConcept {
     }
   }
 
+  async clearAssignments(
+    { period }: { period: string },
+  ): Promise<Empty | { error: string }> {
+    await this.assignments.deleteMany({ period: period });
+    return {};
+  }
+
   async _isRegisteredPeriod(
     { period }: { period: string },
   ): Promise<Array<{ isRegisteredPeriod: boolean }> | { error: string }> {
@@ -974,7 +1007,7 @@ export default class CookingScheduleConcept {
   async _getAssignments(
     { period }: { period: string },
   ): Promise<
-    | Array<{ assignment: { lead: string; assistant?: string; date: string } }>
+    | Array<{ assignment: { lead: User; assistant?: User; date: string } }>
     | {
       error: string;
     }
@@ -982,9 +1015,49 @@ export default class CookingScheduleConcept {
     const assignments = await this.assignments.find({ period: period })
       .toArray();
     const output: Array<
-      { assignment: { lead: string; assistant?: string; date: string } }
+      { assignment: { lead: User; assistant?: User; date: string } }
     > = [];
     for (const assignment of assignments) {
+      output.push({
+        assignment: {
+          lead: assignment.lead,
+          assistant: assignment.assistant,
+          date: assignment.date,
+        },
+      });
+    }
+    return output;
+  }
+
+  async _getUserAssignments(
+    { user, period }: { user: User; period: string },
+  ): Promise<
+    | Array<{ assignment: { lead: User; assistant?: User; date: string } }>
+    | {
+      error: string;
+    }
+  > {
+    const leadAssignments = await this.assignments.find({
+      leadCook: user,
+      period: period,
+    }).toArray();
+    const assistAssignments = await this.assignments.find({
+      assistantCook: user,
+      period: period,
+    }).toArray();
+    const output: Array<
+      { assignment: { lead: User; assistant?: User; date: string } }
+    > = [];
+    for (const assignment of leadAssignments) {
+      output.push({
+        assignment: {
+          lead: assignment.lead,
+          assistant: assignment.assistant,
+          date: assignment.date,
+        },
+      });
+    }
+    for (const assignment of assistAssignments) {
       output.push({
         assignment: {
           lead: assignment.lead,
@@ -1070,17 +1143,55 @@ export default class CookingScheduleConcept {
 
   async _getCandidateCooks(
     { date }: { date: string },
-  ): Promise<Array<{ user: User }> | { error: string }> {
+  ): Promise<Array<{ user: User; daysLeft: number }> | { error: string }> {
     const matchingDate = await this.cookingDates.findOne({ date: date });
     assertExists(matchingDate, `Date ${date} is not a cooking date`);
-
+    const period = getPeriod(date);
     const candidateCooks = await this.availabilities.find({
       date: date,
     }).toArray();
-    const output: Array<{ user: User }> = [];
-    candidateCooks.forEach((c) => {
-      output.push({ user: c.user });
-    });
+    const output: Array<{ user: User; daysLeft: number }> = [];
+
+    for (const c of candidateCooks) {
+      const user = c.user;
+      const isAssignedData = await this._isAssigned({
+        user: user,
+        date: date,
+      }) as Array<{ isAssigned: boolean }>;
+      const preference = await this.preferences.findOne({
+        user: user,
+        period: period,
+      });
+
+      if (!isAssignedData[0].isAssigned && preference) {
+        const otherAssignments = await this._getUserAssignments({
+          user: user,
+          period: period,
+        }) as Array<
+          { assignment: { lead: User; assistant: User; date: string } }
+        >;
+
+        const maxCookingDays = preference.maxCookingDays;
+        const daysLeft = maxCookingDays - otherAssignments.length;
+        if (daysLeft >= 0) {
+          output.push({ user: user, daysLeft: daysLeft });
+        }
+      }
+    }
     return output;
+  }
+
+  async _isAssigned(
+    { user, date }: { user: User; date: string },
+  ): Promise<Array<{ isAssigned: boolean }> | { error: string }> {
+    const existingAssignment = await this.assignments.findOne({ date: date });
+    if (
+      !existingAssignment || !(existingAssignment.lead === user ||
+        existingAssignment.assistant === user)
+    ) {
+      return [{ isAssigned: false }];
+    } else {
+      return [{ isAssigned: true }];
+    }
   }
 }
