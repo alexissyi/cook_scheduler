@@ -732,7 +732,7 @@ export default class CookingScheduleConcept {
       return {};
     } catch (error) {
       console.error("❌ Error calling Gemini API:", (error as Error).message);
-      return { error: "hi" };
+      return { error: "Error generating with LLM" };
     }
   }
 
