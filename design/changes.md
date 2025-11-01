@@ -1,4 +1,21 @@
-## Main Changes
+## Changes for Assignment 4B
+
+### 1. Consolidated the Form concept into my CookingSchedule concept
+
+I realized that the Form concept I originally had was actually extremely closely tied to my CookingSchedule concept, in that I already had a fixed number and type of questions in mind. So I decided to just integrate this concept into the CookingSchedule concept by adding extra state to the Period objects indicating whether they were open for people to input preferences and availabilities or not.
+
+I was hesitant to do this because my CookingSchedule concept was already so gargantuan, but it really seemed like the different aspects of this concept could not really be divorced. 
+
+### 2. Added many, many more queries
+
+I did not realize how many different formats my frontend needed to get data in. This required me to create some more queries for my concepts, particularly for the CookingSchedule concept, that I previously thought were extraneous. However, I realized it was probably smarter to do most computation in the backend. 
+
+### 3. Tweaked CookingSchedule concept state
+
+I decided to assign cooks per period, rather than cooks over all. In my mind, it is possible that cooks might want different subsets of users cooking each month, or for some reason a user is on probation for a month because they were always late the previous month or something. 
+
+
+## Changes for Assignment 4A
 
 ### 1. Consolidated overlapping concepts into one main concept CookScheduler
 

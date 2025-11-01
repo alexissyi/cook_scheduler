@@ -390,9 +390,13 @@ export default class CookingScheduleConcept {
       });
       assertExists(matchingAvailability, "User is not available on this date");
 
-      const matchingPreference = await this.preferences.findOne({ user: user });
-      assertExists(matchingPreference, "User has not uploaded preferences");
+      const matchingPreferenceData = await this._getPreference({
+        user: user,
+        period: period,
+      });
+      assertExists(matchingPreferenceData, "Preferences not added");
 
+      const matchingPreference = matchingPreferenceData[0];
       assert(
         matchingPreference.canLead ||
           matchingPreference.canSolo,
@@ -464,7 +468,11 @@ export default class CookingScheduleConcept {
       });
       assertExists(matchingAvailability, "User is not available on this date");
 
-      const matchingPreference = await this.preferences.findOne({ user: user });
+      const matchingPreferenceData = await this._getPreference({
+        user: user,
+        period: period,
+      });
+      const matchingPreference = matchingPreferenceData[0];
       assertExists(matchingPreference, "User has not uploaded preferences");
 
       assert(matchingPreference.canAssist, "This user cannot assist");
@@ -612,10 +620,11 @@ export default class CookingScheduleConcept {
       const cooks = await this.cooks.find({ period: period }).toArray();
       for (const cook of cooks) {
         const user = cook.user;
-        const preference = await this.preferences.findOne({
+        const preferenceData = await this._getPreference({
           user: user,
           period: period,
         });
+        const preference = preferenceData[0];
         assertExists(preference, "No preference for this user");
         const maxCookingDays = preference.maxCookingDays;
         assignmentsLeftPerUser.set(user, maxCookingDays);
