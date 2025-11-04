@@ -6,7 +6,7 @@ import {
 } from "@concepts";
 import { actions, Sync } from "@engine";
 
-// FOODSTUD SPECIFIC CONTROLS
+// ------------------------ FOODSTUD SPECIFIC CONTROLS
 
 // addPeriod
 
@@ -385,18 +385,383 @@ export const RemoveCookingDateResponseError: Sync = ({ request, error }) => ({
 
 // assignLead
 
+export const AssignLeadRequest: Sync = (
+  { request, session, user, date, actingUser, isFoodStud },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/assignLead",
+    user,
+    date,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = await frames.query(UserAuthentication._isFoodStud, {
+      user: actingUser,
+    }, { isFoodStud });
+    frames = frames.filter(($) => $[isFoodStud] === true);
+    return frames;
+  },
+  then: actions([CookingSchedule.assignLead, { user, date }]),
+});
+
+export const AssignLeadResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/assignLead" }, { request }],
+    [CookingSchedule.assignLead, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "assigned lead",
+  }]),
+});
+
+export const AssignLeadResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/assignLead" }, { request }],
+    [CookingSchedule.assignLead, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 // assignAssistant
+
+export const AssignAssistantRequest: Sync = (
+  { request, session, user, date, actingUser, isFoodStud },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/assignAssistant",
+    user,
+    date,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = await frames.query(UserAuthentication._isFoodStud, {
+      user: actingUser,
+    }, { isFoodStud });
+    frames = frames.filter(($) => $[isFoodStud] === true);
+    return frames;
+  },
+  then: actions([CookingSchedule.assignAssistant, { user, date }]),
+});
+
+export const AssignAssistantResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/assignAssistant" }, { request }],
+    [CookingSchedule.assignAssistant, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "assigned assistant",
+  }]),
+});
+
+export const AssignAssistantResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/assignAssistant" }, { request }],
+    [CookingSchedule.assignAssistant, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
 
 // removeAssignment
 
+export const RemoveAssignmentRequest: Sync = (
+  { request, session, date, actingUser, isFoodStud },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/removeAssignment",
+    date,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = await frames.query(UserAuthentication._isFoodStud, {
+      user: actingUser,
+    }, { isFoodStud });
+    frames = frames.filter(($) => $[isFoodStud] === true);
+    return frames;
+  },
+  then: actions([CookingSchedule.removeAssignment, { date }]),
+});
+
+export const RemoveAssignmentResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/removeAssignment" }, { request }],
+    [CookingSchedule.removeAssignment, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "removed assignment",
+  }]),
+});
+
+export const RemoveAssignmentResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/removeAssignment" }, { request }],
+    [CookingSchedule.removeAssignment, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 // generateAssignments
+
+export const GenerateAssignmentsRequest: Sync = (
+  { request, session, actingUser, isFoodStud },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/generateAssignments",
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = await frames.query(UserAuthentication._isFoodStud, {
+      user: actingUser,
+    }, { isFoodStud });
+    frames = frames.filter(($) => $[isFoodStud] === true);
+    return frames;
+  },
+  then: actions([CookingSchedule.generateAssignments, {}]),
+});
+
+export const GenerateAssignmentsResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/generateAssignments" }, { request }],
+    [CookingSchedule.generateAssignments, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "generated assignments",
+  }]),
+});
+
+export const GenerateAssignmentsResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/generateAssignments" }, { request }],
+    [CookingSchedule.generateAssignments, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
 
 // generateAssignmentsWithLLM
 
-// USER SPECIFIC CONTROLS
+export const GenerateAssignmentsWithLLMRequest: Sync = (
+  { request, session, actingUser, isFoodStud },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/generateAssignmentsWithLLM",
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = await frames.query(UserAuthentication._isFoodStud, {
+      user: actingUser,
+    }, { isFoodStud });
+    frames = frames.filter(($) => $[isFoodStud] === true);
+    return frames;
+  },
+  then: actions([CookingSchedule.generateAssignmentsWithLLM, {}]),
+});
+
+export const GenerateAssignmentsWithLLMResponseSuccess: Sync = (
+  { request },
+) => ({
+  when: actions(
+    [Requesting.request, { path: "/generateAssignmentsWithLLM" }, { request }],
+    [CookingSchedule.generateAssignmentsWithLLM, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "generated assignments with llm",
+  }]),
+});
+
+export const GenerateAssignmentsWithLLMResponseError: Sync = (
+  { request, error },
+) => ({
+  when: actions(
+    [Requesting.request, { path: "/generateAssignmentsWithLLM" }, { request }],
+    [CookingSchedule.generateAssignmentsWithLLM, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+// ----------------------------- USER SPECIFIC CONTROLS
 
 // uploadPreference
 
+export const UploadPreferenceRequest: Sync = (
+  {
+    request,
+    session,
+    user,
+    period,
+    canSolo,
+    canLead,
+    canAssist,
+    maxCookingDays,
+    actingUser,
+  },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/uploadPreference",
+    user,
+    period,
+    canSolo,
+    canLead,
+    canAssist,
+    maxCookingDays,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = frames.filter(($) => $[actingUser] === user);
+    return frames;
+  },
+  then: actions([CookingSchedule.uploadPreference, {
+    user,
+    period,
+    canSolo,
+    canLead,
+    canAssist,
+    maxCookingDays,
+  }]),
+});
+
+export const UploadPreferenceResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/uploadPreference" }, { request }],
+    [CookingSchedule.uploadPreference, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "uploaded preference",
+  }]),
+});
+
+export const UploadPreferenceResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/uploadPreference" }, { request }],
+    [CookingSchedule.uploadPreference, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 // addAvailability
 
+export const AddAvailabilityRequest: Sync = (
+  {
+    request,
+    session,
+    user,
+    date,
+    actingUser,
+  },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/addAvailability",
+    user,
+    date,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = frames.filter(($) => $[actingUser] === user);
+    return frames;
+  },
+  then: actions([CookingSchedule.addAvailability, {
+    user,
+    date,
+  }]),
+});
+
+export const AddAvailabilityResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/addAvailability" }, { request }],
+    [CookingSchedule.addAvailability, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "added availability",
+  }]),
+});
+
+export const AddAvailabilityResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/addAvailability" }, { request }],
+    [CookingSchedule.addAvailability, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 // removeAvailability
+
+export const RemoveAvailabilityRequest: Sync = (
+  {
+    request,
+    session,
+    user,
+    date,
+    actingUser,
+  },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/removeAvailability",
+    user,
+    date,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = frames.filter(($) => $[actingUser] === user);
+    return frames;
+  },
+  then: actions([CookingSchedule.removeAvailability, {
+    user,
+    date,
+  }]),
+});
+
+export const RemovevailabilityResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/removeAvailability" }, { request }],
+    [CookingSchedule.removeAvailability, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "removed availability",
+  }]),
+});
+
+export const RemoveAvailabilityResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/removeAvailability" }, { request }],
+    [CookingSchedule.removeAvailability, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
