@@ -13,7 +13,12 @@ import { actions, Sync } from "@engine";
 export const AddPeriodRequest: Sync = (
   { request, session, period, current, actingUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/addPeriod", period, current }, {
+  when: actions([Requesting.request, {
+    path: "/addPeriod",
+    period,
+    current,
+    session,
+  }, {
     request,
   }]),
   where: async (frames) => {
@@ -55,7 +60,7 @@ export const RemovePeriodRequest: Sync = (
 ) => ({
   when: actions([
     Requesting.request,
-    { path: "/removePeriod", period },
+    { path: "/removePeriod", period, session },
     {
       request,
     },
@@ -99,6 +104,7 @@ export const SetCurrentPeriodRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/setCurrentPeriod",
+    session,
     period,
   }, {
     request,
@@ -140,7 +146,7 @@ export const SetCurrentPeriodResponseError: Sync = ({ request, error }) => ({
 export const OpenPeriodRequest: Sync = (
   { request, session, period, actingUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/openPeriod", period }, {
+  when: actions([Requesting.request, { path: "/openPeriod", session, period }, {
     request,
   }]),
   where: async (frames) => {
@@ -180,9 +186,13 @@ export const OpenPeriodResponseError: Sync = ({ request, error }) => ({
 export const ClosePeriodRequest: Sync = (
   { request, session, period, actingUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/closePeriod", period }, {
-    request,
-  }]),
+  when: actions([
+    Requesting.request,
+    { path: "/closePeriod", session, period },
+    {
+      request,
+    },
+  ]),
   where: async (frames) => {
     frames = await frames.query(Session._getUser, { session }, {
       user: actingUser,
@@ -218,9 +228,14 @@ export const ClosePeriodResponseError: Sync = ({ request, error }) => ({
 // addCook
 
 export const AddCookRequest: Sync = (
-  { request, session, user, actingUser, isUser, isFoodStud },
+  { request, session, period, user, actingUser, isUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/addCook", user }, {
+  when: actions([Requesting.request, {
+    path: "/addCook",
+    session,
+    period,
+    user,
+  }, {
     request,
   }]),
   where: async (frames) => {
@@ -237,7 +252,7 @@ export const AddCookRequest: Sync = (
     frames = frames.filter(($) => $[isFoodStud] === true);
     return frames;
   },
-  then: actions([CookingSchedule.addCook, { user }]),
+  then: actions([CookingSchedule.addCook, { period, user }]),
 });
 
 export const AddCookResponseSuccess: Sync = ({ request }) => ({
@@ -262,9 +277,14 @@ export const AddCookResponseError: Sync = ({ request, error }) => ({
 // removeCook
 
 export const RemoveCookRequest: Sync = (
-  { request, session, user, actingUser, isUser, isFoodStud },
+  { request, session, period, user, actingUser, isUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/removeCook", user }, {
+  when: actions([Requesting.request, {
+    path: "/removeCook",
+    session,
+    period,
+    user,
+  }, {
     request,
   }]),
   where: async (frames) => {
@@ -281,7 +301,7 @@ export const RemoveCookRequest: Sync = (
     frames = frames.filter(($) => $[isFoodStud] === true);
     return frames;
   },
-  then: actions([CookingSchedule.removeCook, { user }]),
+  then: actions([CookingSchedule.removeCook, { period, user }]),
 });
 
 export const RemoveCookResponseSuccess: Sync = ({ request }) => ({
@@ -291,7 +311,7 @@ export const RemoveCookResponseSuccess: Sync = ({ request }) => ({
   ),
   then: actions([Requesting.respond, {
     request,
-    status: "added cook",
+    status: "removed cook",
   }]),
 });
 
@@ -308,9 +328,13 @@ export const RemoveCookResponseError: Sync = ({ request, error }) => ({
 export const AddCookingDateRequest: Sync = (
   { request, session, date, actingUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/addCookingDate", date }, {
-    request,
-  }]),
+  when: actions([
+    Requesting.request,
+    { path: "/addCookingDate", session, date },
+    {
+      request,
+    },
+  ]),
   where: async (frames) => {
     frames = await frames.query(Session._getUser, { session }, {
       user: actingUser,
@@ -348,7 +372,11 @@ export const AddCookingDateResponseError: Sync = ({ request, error }) => ({
 export const RemoveCookingDateRequest: Sync = (
   { request, session, date, actingUser, isFoodStud },
 ) => ({
-  when: actions([Requesting.request, { path: "/removeCookingDate", date }, {
+  when: actions([Requesting.request, {
+    path: "/removeCookingDate",
+    session,
+    date,
+  }, {
     request,
   }]),
   where: async (frames) => {
@@ -390,6 +418,7 @@ export const AssignLeadRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/assignLead",
+    session,
     user,
     date,
   }, {
@@ -434,6 +463,7 @@ export const AssignAssistantRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/assignAssistant",
+    session,
     user,
     date,
   }, {
@@ -478,6 +508,7 @@ export const RemoveAssignmentRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/removeAssignment",
+    session,
     date,
   }, {
     request,
@@ -522,6 +553,7 @@ export const ClearAssignmentsRequest: Sync = (
   when: actions([Requesting.request, {
     path: "/clearAssignments",
     period,
+    session,
   }, {
     request,
   }]),
@@ -564,6 +596,7 @@ export const GenerateAssignmentsRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/generateAssignments",
+    session,
   }, {
     request,
   }]),
@@ -606,6 +639,7 @@ export const GenerateAssignmentsWithLLMRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/generateAssignmentsWithLLM",
+    session,
   }, {
     request,
   }]),

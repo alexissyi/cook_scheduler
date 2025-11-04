@@ -26,7 +26,10 @@
 
 export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
-
+  "/api/CookingSchedule/deleteIncompatibleAssignments":
+    "allow anyone to delete assignments that violate constraints",
+  "/api/CookingSchedule/createPrompt":
+    "allow anyone to generate an LLM prompt using data that can already be publicly queried",
   "/api/CookingSchedule/_isRegisteredPeriod": "public query",
   "/api/CookingSchedule/_isCurrentPeriod": "public query",
   "/api/CookingSchedule/_isOpen": "public query",
@@ -41,6 +44,9 @@ export const inclusions: Record<string, string> = {
   "/api/CookingSchedule/_getPreference": "public query",
   "/api/CookingSchedule/_getCandidateCooks": "public query",
   "/api/CookingSchedule/_isAssigned": "public query",
+  "/api/UserAuthentication/initialize":
+    "allow anyone to initialize UserAuthentication, since it takes no parameters and has no requirements",
+  "/api/UserAuthentication/uploadUser": "allow anyone to upload a user",
   "/api/UserAuthentication/_getCostcoFoodStudKerb": "public query",
   "/api/UserAuthentication/_getProduceFoodStudKerb": "public query",
   "/api/UserAuthentication/_isFoodStud": "public query",
@@ -50,30 +56,11 @@ export const inclusions: Record<string, string> = {
   "/api/UserAuthentication/_getKerb": "public query",
   "/api/UserAuthentication/_isUser": "public query",
   "/api/Session/_getUser": "public query",
-  "/api/CookingSchedule/addCook": "",
-  "/api/CookingSchedule/removeCook": "",
-  "/api/CookingSchedule/addPeriod": "",
-  "/api/CookingSchedule/removePeriod": "",
-  "/api/CookingSchedule/setCurrentPeriod": "",
-  "/api/CookingSchedule/addCookingDate": "",
-  "/api/CookingSchedule/removeCookingDate": "",
-  "/api/CookingSchedule/openPeriod": "",
-  "/api/CookingSchedule/closePeriod": "",
+
+  "/api/CookingSchedule/parseAndApplyAssignments": "",
   "/api/CookingSchedule/uploadPreference": "",
   "/api/CookingSchedule/addAvailability": "",
   "/api/CookingSchedule/removeAvailability": "",
-  "/api/CookingSchedule/assignLead": "",
-  "/api/CookingSchedule/assignAssistant": "",
-  "/api/CookingSchedule/removeAssignment": "",
-  "/api/CookingSchedule/deleteIncompatibleAssignments": "",
-  "/api/CookingSchedule/generateAssignments": "",
-  "/api/CookingSchedule/generateAssignmentsWithLLM": "",
-  "/api/CookingSchedule/createPrompt": "",
-  "/api/CookingSchedule/parseAndApplyAssignments": "",
-  "/api/CookingSchedule/clearAssignments": "",
-  "/api/UserAuthentication/initialize":
-    "allow anyone to initialize UserAuthentication, since it takes no parameters and has no requirements",
-  "/api/UserAuthentication/uploadUser": "allow anyone to upload a user",
   "/api/Session/create": "",
   "/api/Session/delete": "",
 };
@@ -97,4 +84,23 @@ export const exclusions: Array<string> = [
   "/api/UserAuthentication/updatePassword",
   "/api/UserAuthentication/setProduceFoodStud",
   "/api/UserAuthentication/setCostcoFoodStud",
+
+  "/api/CookingSchedule/addCook",
+  "/api/CookingSchedule/removeCook",
+  "/api/CookingSchedule/addPeriod",
+  "/api/CookingSchedule/removePeriod",
+  "/api/CookingSchedule/setCurrentPeriod",
+  "/api/CookingSchedule/addCookingDate",
+  "/api/CookingSchedule/removeCookingDate",
+  "/api/CookingSchedule/openPeriod",
+  "/api/CookingSchedule/closePeriod",
+
+  "/api/CookingSchedule/assignLead",
+  "/api/CookingSchedule/assignAssistant",
+  "/api/CookingSchedule/removeAssignment",
+  "/api/CookingSchedule/generateAssignments",
+  "/api/CookingSchedule/generateAssignmentsWithLLM",
+  "/api/CookingSchedule/generateAssignments",
+  "/api/CookingSchedule/generateAssignmentsWithLLM",
+  "/api/CookingSchedule/clearAssignments",
 ];
