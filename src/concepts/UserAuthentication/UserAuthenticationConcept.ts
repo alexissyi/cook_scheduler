@@ -62,71 +62,105 @@ export default class UserAuthenticationConcept {
   ): Promise<
     { user: User; isAdmin: boolean; isFoodStud: boolean } | { error: string }
   > {
-    await this.initialize();
-    // check that there is no user with this kerb
-    const matchingKerbUser = await this.users.findOne({ kerb: kerb });
-    assert(matchingKerbUser === null, "User already exists with this kerb");
+    try {
+      await this.initialize();
+      // check that there is no user with this kerb
+      const matchingKerbUser = await this.users.findOne({ kerb: kerb });
+      assert(matchingKerbUser === null, "User already exists with this kerb");
 
-    const userID = freshID();
-    const user: UserDoc = {
-      _id: userID,
-      kerb: kerb,
-      password: password,
-      isAdmin: false,
-      isProduceFoodStud: false,
-      isCostcoFoodStud: false,
-      isLoggedIn: false,
-    };
-    await this.users.insertOne(user);
-    return { user: userID, isAdmin: false, isFoodStud: false };
+      const userID = freshID();
+      const user: UserDoc = {
+        _id: userID,
+        kerb: kerb,
+        password: password,
+        isAdmin: false,
+        isProduceFoodStud: false,
+        isCostcoFoodStud: false,
+        isLoggedIn: false,
+      };
+      await this.users.insertOne(user);
+      return { user: userID, isAdmin: false, isFoodStud: false };
+    } catch (error) {
+      console.error(
+        "❌ Error uploading user",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
-  async removeUser({ user }: { user: User }): Promise<Empty> {
-    await this.initialize();
-    const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "User does not exist");
-    assert(
-      !userDoc.isProduceFoodStud && !userDoc.isCostcoFoodStud,
-      "Cannot remove foodstud",
-    );
-    await this.users.deleteOne({ _id: user });
-    return {};
+  async removeUser(
+    { user }: { user: User },
+  ): Promise<Empty | { error: string }> {
+    try {
+      await this.initialize();
+      const userDoc = await this.users.findOne({ _id: user });
+      assertExists(userDoc, "User does not exist");
+      assert(
+        !userDoc.isProduceFoodStud && !userDoc.isCostcoFoodStud,
+        "Cannot remove foodstud",
+      );
+      await this.users.deleteOne({ _id: user });
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error removing user",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async updateKerb(
     { user, newKerb }: { user: User; newKerb: string },
   ): Promise<Empty | { error: string }> {
-    await this.initialize();
-    const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "This user does not exist");
-    assert(!userDoc.isAdmin, "Cannot update kerb of admin");
-    const oldKerb = userDoc.kerb;
-    assert(
-      oldKerb !== newKerb,
-      "New password cannot be the same as old password",
-    );
-    await this.users.updateOne({ _id: user }, {
-      $set: { kerb: newKerb },
-    });
-    return {};
+    try {
+      await this.initialize();
+      const userDoc = await this.users.findOne({ _id: user });
+      assertExists(userDoc, "This user does not exist");
+      assert(!userDoc.isAdmin, "Cannot update kerb of admin");
+      const oldKerb = userDoc.kerb;
+      assert(
+        oldKerb !== newKerb,
+        "New password cannot be the same as old password",
+      );
+      await this.users.updateOne({ _id: user }, {
+        $set: { kerb: newKerb },
+      });
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error updating kerb",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async updatePassword(
     { user, newPassword }: { user: User; newPassword: string },
   ): Promise<Empty | { error: string }> {
-    await this.initialize();
-    const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "This user does not exist");
-    assert(!userDoc.isAdmin, "Cannot update password of admin");
-    const oldPassword = userDoc.password;
-    assert(
-      oldPassword !== newPassword,
-      "New password cannot be the same as old password",
-    );
-    await this.users.updateOne({ _id: user }, {
-      $set: { password: newPassword },
-    });
-    return {};
+    try {
+      await this.initialize();
+      const userDoc = await this.users.findOne({ _id: user });
+      assertExists(userDoc, "This user does not exist");
+      assert(!userDoc.isAdmin, "Cannot update password of admin");
+      const oldPassword = userDoc.password;
+      assert(
+        oldPassword !== newPassword,
+        "New password cannot be the same as old password",
+      );
+      await this.users.updateOne({ _id: user }, {
+        $set: { password: newPassword },
+      });
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error updating password",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async login(
@@ -139,86 +173,126 @@ export default class UserAuthenticationConcept {
       isCostcoFoodStud: boolean;
     } | { error: string }
   > {
-    await this.initialize();
+    try {
+      await this.initialize();
 
-    const userDoc = await this.users.findOne({ kerb: kerb });
-    assertExists(userDoc, "User does not exist");
-    assertEquals(userDoc.password, password, "Wrong password");
-    await this.users.updateOne({ _id: userDoc._id }, {
-      $set: { loggedIn: true },
-    });
-    return {
-      user: userDoc._id,
-      isAdmin: userDoc.isAdmin,
-      isProduceFoodStud: userDoc.isProduceFoodStud,
-      isCostcoFoodStud: userDoc.isCostcoFoodStud,
-    };
+      const userDoc = await this.users.findOne({ kerb: kerb });
+      assertExists(userDoc, "User does not exist");
+      assertEquals(userDoc.password, password, "Wrong password");
+      await this.users.updateOne({ _id: userDoc._id }, {
+        $set: { loggedIn: true },
+      });
+      return {
+        user: userDoc._id,
+        isAdmin: userDoc.isAdmin,
+        isProduceFoodStud: userDoc.isProduceFoodStud,
+        isCostcoFoodStud: userDoc.isCostcoFoodStud,
+      };
+    } catch (error) {
+      console.error(
+        "❌ Error on login",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async logout(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    await this.initialize();
+    try {
+      await this.initialize();
 
-    const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "User does not exist");
+      const userDoc = await this.users.findOne({ _id: user });
+      assertExists(userDoc, "User does not exist");
 
-    await this.users.updateOne({ _id: userDoc._id }, {
-      $set: { loggedIn: false },
-    });
+      await this.users.updateOne({ _id: userDoc._id }, {
+        $set: { loggedIn: false },
+      });
 
-    return {};
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error on logout",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async setProduceFoodStud(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    await this.initialize();
-    const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "User does not exist");
-    await this.users.updateOne({ isProduceFoodStud: true }, {
-      $set: { isProduceFoodStud: false },
-    });
-    await this.users.updateOne({ _id: user }, {
-      $set: { isProduceFoodStud: true },
-    });
-    return {};
+    try {
+      await this.initialize();
+      const userDoc = await this.users.findOne({ _id: user });
+      assertExists(userDoc, "User does not exist");
+      await this.users.updateOne({ isProduceFoodStud: true }, {
+        $set: { isProduceFoodStud: false },
+      });
+      await this.users.updateOne({ _id: user }, {
+        $set: { isProduceFoodStud: true },
+      });
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error setting produce foodstud",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async setCostcoFoodStud(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    await this.initialize();
-    const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "User does not exist");
-    await this.users.updateOne({ isCostcoFoodStud: true }, {
-      $set: { isCostcoFoodStud: false },
-    });
-    await this.users.updateOne({ _id: user }, {
-      $set: { isCostcoFoodStud: true },
-    });
-    return {};
+    try {
+      await this.initialize();
+      const userDoc = await this.users.findOne({ _id: user });
+      assertExists(userDoc, "User does not exist");
+      await this.users.updateOne({ isCostcoFoodStud: true }, {
+        $set: { isCostcoFoodStud: false },
+      });
+      await this.users.updateOne({ _id: user }, {
+        $set: { isCostcoFoodStud: true },
+      });
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error setting costco foodstud",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async verifyFoodStud(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
-    await this.initialize();
-    const produceFoodStudDoc = await this.users.findOne({
-      isProduceFoodStud: true,
-    });
-    const costcoFoodStudDoc = await this.users.findOne({
-      isCostcoFoodStud: true,
-    });
-    assertExists(produceFoodStudDoc, "Foodstuds not set");
-    assertExists(costcoFoodStudDoc, "Foodstuds not set");
-    const produceFoodStud = produceFoodStudDoc._id;
-    const costcoFoodStud = costcoFoodStudDoc._id;
-    assert(
-      user === produceFoodStud || user === costcoFoodStud,
-      "User is not a foodstud",
-    );
-    return {};
+    try {
+      await this.initialize();
+      const produceFoodStudDoc = await this.users.findOne({
+        isProduceFoodStud: true,
+      });
+      const costcoFoodStudDoc = await this.users.findOne({
+        isCostcoFoodStud: true,
+      });
+      assertExists(produceFoodStudDoc, "Foodstuds not set");
+      assertExists(costcoFoodStudDoc, "Foodstuds not set");
+      const produceFoodStud = produceFoodStudDoc._id;
+      const costcoFoodStud = costcoFoodStudDoc._id;
+      assert(
+        user === produceFoodStud || user === costcoFoodStud,
+        "User is not a foodstud",
+      );
+      return {};
+    } catch (error) {
+      console.error(
+        "❌ Error verifying foodstud",
+        (error as Error).message,
+      );
+      return { error: (error as Error).message };
+    }
   }
 
   async _isFoodStud(

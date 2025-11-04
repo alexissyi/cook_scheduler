@@ -30,12 +30,6 @@ Admin is not in Users
 
 **actions**
 
-initialize()
-
-**requires** no Users have been uploaded
-
-**effect** sets ProduceFoodStud and CostcoFoodStud to null, sets Admin to a User
-
 uploadUser(kerb: String, password: String): User
 
 **requires** no User in Users has the same kerb, Admin does not have the same kerb
