@@ -23,9 +23,13 @@ export const LoginRequest: Sync = (
   ),
 });
 
-export const LoginCreateSession: Sync = ({ user }) => (
+export const LoginCreateSession: Sync = (
+  { user },
+) => (
   {
-    when: actions([UserAuthentication.login, {}, { user }]),
+    when: actions([UserAuthentication.login, {}, {
+      user,
+    }]),
     then: actions([
       Session.create,
       { user },
@@ -33,7 +37,9 @@ export const LoginCreateSession: Sync = ({ user }) => (
   }
 );
 
-export const LoginResponseSuccess: Sync = ({ request, user, session }) => (
+export const LoginResponseSuccess: Sync = (
+  { request, user, isAdmin, isProduceFoodStud, isCostcoFoodStud, session },
+) => (
   {
     when: actions(
       [
@@ -41,12 +47,24 @@ export const LoginResponseSuccess: Sync = ({ request, user, session }) => (
         { path: "/login" },
         { request },
       ],
-      [UserAuthentication.login, {}, { user }],
+      [UserAuthentication.login, {}, {
+        user,
+        isAdmin,
+        isProduceFoodStud,
+        isCostcoFoodStud,
+      }],
       [Session.create, { user }, { session }],
     ),
     then: actions([
       Requesting.respond,
-      { request, session },
+      {
+        request,
+        session,
+        isAdmin,
+        isProduceFoodStud,
+        isCostcoFoodStud,
+        status: "logged in",
+      },
     ]),
   }
 );

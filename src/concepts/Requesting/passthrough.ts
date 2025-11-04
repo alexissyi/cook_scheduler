@@ -43,12 +43,12 @@ export const inclusions: Record<string, string> = {
   "/api/CookingSchedule/_isAssigned": "public query",
   "/api/UserAuthentication/_getCostcoFoodStudKerb": "public query",
   "/api/UserAuthentication/_getProduceFoodStudKerb": "public query",
-  "/api/UserAuthentication/_isLoggedIn": "public query",
   "/api/UserAuthentication/_isFoodStud": "public query",
   "/api/UserAuthentication/_isAdmin": "public query",
   "/api/UserAuthentication/_getUsers": "public query",
   "/api/UserAuthentication/_getUser": "public query",
   "/api/UserAuthentication/_getKerb": "public query",
+  "/api/UserAuthentication/_isUser": "public query",
   "/api/Session/_getUser": "public query",
   "/api/CookingSchedule/addCook": "",
   "/api/CookingSchedule/removeCook": "",
@@ -76,11 +76,10 @@ export const inclusions: Record<string, string> = {
   "/api/UserAuthentication/removeUser": "",
   "/api/UserAuthentication/updateKerb": "",
   "/api/UserAuthentication/updatePassword": "",
-  "/api/UserAuthentication/login": "",
-  "/api/UserAuthentication/logout": "",
   "/api/UserAuthentication/setProduceFoodStud": "",
   "/api/UserAuthentication/setCostcoFoodStud": "",
-  "/api/UserAuthentication/verifyFoodStud": "",
+  "/api/Session/create": "",
+  "/api/Session/delete": "",
 };
 
 /**
@@ -95,4 +94,6 @@ export const inclusions: Record<string, string> = {
 
 export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
+  "/api/UserAuthentication/login",
+  "/api/UserAuthentication/logout",
 ];

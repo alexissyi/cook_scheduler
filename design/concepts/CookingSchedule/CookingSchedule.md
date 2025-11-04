@@ -126,6 +126,12 @@ removeAssignment(date: Date)
 
 **effect** removes this Assignment from the set of Assignments
 
+clearAssignments(period: Period)
+
+**requires** period is a registered Period
+
+**effect** removes all Assignments associated with period
+
 uploadPreference(user: User, period: Period, canSolo: boolean, canLead: boolean, canAssist: boolean, maxCookingDays: boolean)
 
 **requires** user is in Cooks for period, period is in Periods, maxCookingDays is a nonnegative integer

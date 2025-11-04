@@ -514,6 +514,49 @@ export const RemoveAssignmentResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+// clearAssignments
+
+export const ClearAssignmentsRequest: Sync = (
+  { request, session, period, actingUser, isFoodStud },
+) => ({
+  when: actions([Requesting.request, {
+    path: "/clearAssignments",
+    period,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    frames = await frames.query(Session._getUser, { session }, {
+      user: actingUser,
+    });
+    frames = await frames.query(UserAuthentication._isFoodStud, {
+      user: actingUser,
+    }, { isFoodStud });
+    frames = frames.filter(($) => $[isFoodStud] === true);
+    return frames;
+  },
+  then: actions([CookingSchedule.clearAssignments, { period }]),
+});
+
+export const ClearAssignmentsResponseSuccess: Sync = ({ request }) => ({
+  when: actions(
+    [Requesting.request, { path: "/clearAssignments" }, { request }],
+    [CookingSchedule.clearAssignments, {}, {}],
+  ),
+  then: actions([Requesting.respond, {
+    request,
+    status: "cleared assignments",
+  }]),
+});
+
+export const ClearAssignmentsResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/clearAssignments" }, { request }],
+    [CookingSchedule.clearAssignments, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 // generateAssignments
 
 export const GenerateAssignmentsRequest: Sync = (
