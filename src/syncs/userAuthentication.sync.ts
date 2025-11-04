@@ -58,6 +58,7 @@ export const LoginResponseSuccess: Sync = (
     then: actions([
       Requesting.respond,
       {
+        user,
         request,
         session,
         isAdmin,
@@ -157,6 +158,7 @@ export const UpdatePasswordRequest: Sync = (
     path: "/updatePassword",
     user,
     newPassword,
+    session,
   }, {
     request,
   }]),
@@ -195,6 +197,7 @@ export const UpdateKerbRequest: Sync = (
     path: "/updateKerb",
     user,
     newKerb,
+    session,
   }, {
     request,
   }]),
@@ -229,7 +232,11 @@ export const UpdateKerbResponseError: Sync = ({ request, error }) => ({
 export const SetProduceFoodStudRequest: Sync = (
   { request, session, user, actingUser, isAdmin },
 ) => ({
-  when: actions([Requesting.request, { path: "/setProduceFoodStud", user }, {
+  when: actions([Requesting.request, {
+    path: "/setProduceFoodStud",
+    session,
+    user,
+  }, {
     request,
   }]),
   where: async (frames) => {
@@ -269,7 +276,11 @@ export const SetProduceFoodStudResponseError: Sync = ({ request, error }) => ({
 export const SetCostcoFoodStudRequest: Sync = (
   { request, session, user, actingUser, isAdmin },
 ) => ({
-  when: actions([Requesting.request, { path: "/setCostcoFoodStud", user }, {
+  when: actions([Requesting.request, {
+    path: "/setCostcoFoodStud",
+    user,
+    session,
+  }, {
     request,
   }]),
   where: async (frames) => {

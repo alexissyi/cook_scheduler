@@ -71,13 +71,9 @@ export const inclusions: Record<string, string> = {
   "/api/CookingSchedule/createPrompt": "",
   "/api/CookingSchedule/parseAndApplyAssignments": "",
   "/api/CookingSchedule/clearAssignments": "",
-  "/api/UserAuthentication/initialize": "",
-  "/api/UserAuthentication/uploadUser": "",
-  "/api/UserAuthentication/removeUser": "",
-  "/api/UserAuthentication/updateKerb": "",
-  "/api/UserAuthentication/updatePassword": "",
-  "/api/UserAuthentication/setProduceFoodStud": "",
-  "/api/UserAuthentication/setCostcoFoodStud": "",
+  "/api/UserAuthentication/initialize":
+    "allow anyone to initialize UserAuthentication, since it takes no parameters and has no requirements",
+  "/api/UserAuthentication/uploadUser": "allow anyone to upload a user",
   "/api/Session/create": "",
   "/api/Session/delete": "",
 };
@@ -96,4 +92,9 @@ export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
   "/api/UserAuthentication/login",
   "/api/UserAuthentication/logout",
+  "/api/UserAuthentication/removeUser",
+  "/api/UserAuthentication/updateKerb",
+  "/api/UserAuthentication/updatePassword",
+  "/api/UserAuthentication/setProduceFoodStud",
+  "/api/UserAuthentication/setCostcoFoodStud",
 ];

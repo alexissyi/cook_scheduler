@@ -106,6 +106,7 @@ export default class CookingScheduleConcept {
       assert(periodDoc !== null, "Period is not registered");
       const cookID = freshID();
       await this.cooks.insertOne({ _id: cookID, user: user, period: period });
+      console.log(`User ${user} registered as a cook for ${period}`);
       return {};
     } catch (error) {
       console.error(
@@ -1153,13 +1154,14 @@ export default class CookingScheduleConcept {
   async _getAvailability(
     { user, period }: { user: User; period: string },
   ): Promise<Array<{ date: string }>> {
+    assertExists(user, "User should exist");
     const matchingPeriod = await this.periods.findOne({ period: period });
     assertExists(matchingPeriod, `Period ${period} not registered`);
     const matchingCook = await this.cooks.findOne({
       user: user,
       period: period,
     });
-    assertExists(matchingCook, "User not a cook for this period");
+    assertExists(matchingCook, `User ${user} not a cook for this period`);
     const availability = await this.availabilities.find({
       user: user,
       period: period,
@@ -1183,13 +1185,14 @@ export default class CookingScheduleConcept {
       }
     >
   > {
+    assertExists(user, "User should exist");
     const matchingPeriod = await this.periods.findOne({ period: period });
     assertExists(matchingPeriod, `Period ${period} not registered`);
     const matchingCook = await this.cooks.findOne({
       user: user,
       period: period,
     });
-    assertExists(matchingCook, "User not a cook for this period");
+    assertExists(matchingCook, `User ${user} not a cook for this period`);
     const preference = await this.preferences.findOne({
       user: user,
       period: period,
