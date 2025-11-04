@@ -62,17 +62,9 @@ export default class SessionConcept {
 
   async _getUser(
     { session }: { session: Session },
-  ): Promise<Array<{ user: User }> | { error: string }> {
-    try {
-      const sessionDoc = await this.sessions.findOne({ _id: session });
-      assert(sessionDoc, "Session does not exist");
-      return [{ user: sessionDoc.user }];
-    } catch (error) {
-      console.error(
-        "❌ Error getting user",
-        (error as Error).message,
-      );
-      return { error: (error as Error).message };
-    }
+  ): Promise<Array<{ user: User }>> {
+    const sessionDoc = await this.sessions.findOne({ _id: session });
+    assert(sessionDoc, "Session does not exist");
+    return [{ user: sessionDoc.user }];
   }
 }

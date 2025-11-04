@@ -18,8 +18,6 @@ a Set of User Users with
 
   a String Password
 
-  a Boolean loggedIn
-
 **invariants**
 
 ProduceFoodStud is also in Users
@@ -58,13 +56,7 @@ login(kerb: String, password: String): User
 
 **requires** a User exists in Users with the same kerb and password
 
-**effect** sets loggedIn to True for that User and returns that User
-
-logout(user: User)
-
-**requires** user is in Users
-
-**effect** sets loggedIn to False for that User
+**effect** returns that User
 
 setProduceFoodStud(user: User)
 
@@ -78,14 +70,6 @@ setCostcoFoodStud(user: User)
 
 **effect** sets CostcoFoodStud to user
 
-verifyFoodStud(user: User)
-
-**requires** either ProduceFoodStud or CostcoFoodStud is user
-
-**effect** nothing
-
-**queries**
-
 _isFoodStud(user: User): Array of Boolean
 
 **requires** user is in Users
@@ -97,12 +81,6 @@ _isAdmin(user: User): Array of Boolean
 **requires** user is in Users
 
 **effect** returns whether or not user is Admin
-
-_isLoggedIn(user: User): Array of Boolean
-
-**requires** user is in Users
-
-**effect** returns isLoggedIn for user
 
 _getCostcoFoodStudKerb(): Array of String
 

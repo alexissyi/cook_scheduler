@@ -60,7 +60,7 @@ addPeriod(period: Period, current: boolean)
 
 **effect**  adds period to Periods with Current set to current and Open set to False; if current is True, marks all other Periods as not current (current = False)
 
-removePeriod(period: Period, current: boolean)
+removePeriod(period: Period)
 
 **requires** period is in Periods
 
@@ -132,25 +132,25 @@ uploadPreference(user: User, period: Period, canSolo: boolean, canLead: boolean,
 
 **effect** creates a new Preference with these fields and adds it to Preferences, or updates Preferences if there is already a preference for user and period, removes all incompatible Assignments
 
-async addAvailability(user: User, date: Date)
+addAvailability(user: User, date: Date)
 
 **requires** user is in Cooks; date is in CookingDates
 
 **effect** adds this date to Availabilities
 
-async removeAvailability(user: User, date: Date)
+removeAvailability(user: User, date: Date)
 
 **requires** user is in Cooks; date is in CookingDates; there is an Availability with this user and date in Availabilities
 
 **effect** removes corresponding Availability from Availabilities and removes all incompatible Assignments
 
-async generateAssignments()
+generateAssignments()
 
 **requires**  no existing Assignments violate Availabilities and Preferences and there is exactly one Period with current set to True
 
 **effect** generates an assignment of Users to the CookingDates in the current Period via an algorithm that violates no constraints in Availabilities or Preferences and satisfies all prior existing Assignments
 
-async generateAssignmentsWithLLM()
+generateAssignmentsWithLLM()
 
 **requires** no existing Assignments violate Availabilities and Preferences and there is exactly one Period with current set to True
 

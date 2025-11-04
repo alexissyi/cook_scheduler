@@ -167,7 +167,8 @@ Deno.test("Action: verifyFoodStud", async () => {
 
     await authentication.setCostcoFoodStud({ user: user2 });
 
-    await authentication.verifyFoodStud({ user: user1 });
+    const isFoodStudObj = await authentication._isFoodStud({ user: user1 });
+    assert(isFoodStudObj[0].isFoodStud);
   } finally {
     await client.close();
   }
@@ -187,7 +188,11 @@ Deno.test("Action: log in as admin", async () => {
       password: password1,
     }) as { user: User };
 
-    await authentication._isLoggedIn({ user: userObject.user });
+    const resultObj = await authentication._isAdmin({
+      user: userObject.user,
+    }) as Array<{ isAdmin: boolean }>;
+    const result = resultObj[0];
+    assert(result.isAdmin, "User should be admin");
   } finally {
     await client.close();
   }

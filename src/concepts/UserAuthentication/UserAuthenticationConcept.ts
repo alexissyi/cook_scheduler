@@ -18,7 +18,6 @@ interface UserDoc {
   isAdmin: boolean;
   isProduceFoodStud: boolean;
   isCostcoFoodStud: boolean;
-  isLoggedIn: boolean;
 }
 
 /**
@@ -35,15 +34,14 @@ interface FoodStudDoc {
  */
 export default class UserAuthenticationConcept {
   private users: Collection<UserDoc>;
-  initialized: boolean;
 
   constructor(private readonly db: Db) {
     this.users = this.db.collection(PREFIX + "Users");
-    this.initialized = false;
   }
 
   private async initialize(): Promise<Empty | { error: string }> {
-    if (!this.initialized) {
+    const existingAdminObj = await this.users.findOne({ isAdmin: true });
+    if (!existingAdminObj) {
       await this.users.insertOne({
         _id: freshID(),
         kerb: "admin",
@@ -51,7 +49,6 @@ export default class UserAuthenticationConcept {
         isAdmin: true,
         isProduceFoodStud: false,
         isCostcoFoodStud: false,
-        isLoggedIn: false,
       });
     }
     return {};
@@ -76,7 +73,6 @@ export default class UserAuthenticationConcept {
         isAdmin: false,
         isProduceFoodStud: false,
         isCostcoFoodStud: false,
-        isLoggedIn: false,
       };
       await this.users.insertOne(user);
       return { user: userID, isAdmin: false, isFoodStud: false };
@@ -197,29 +193,6 @@ export default class UserAuthenticationConcept {
     }
   }
 
-  async logout(
-    { user }: { user: User },
-  ): Promise<Empty | { error: string }> {
-    try {
-      await this.initialize();
-
-      const userDoc = await this.users.findOne({ _id: user });
-      assertExists(userDoc, "User does not exist");
-
-      await this.users.updateOne({ _id: userDoc._id }, {
-        $set: { loggedIn: false },
-      });
-
-      return {};
-    } catch (error) {
-      console.error(
-        "❌ Error on logout",
-        (error as Error).message,
-      );
-      return { error: (error as Error).message };
-    }
-  }
-
   async setProduceFoodStud(
     { user }: { user: User },
   ): Promise<Empty | { error: string }> {
@@ -266,38 +239,9 @@ export default class UserAuthenticationConcept {
     }
   }
 
-  async verifyFoodStud(
-    { user }: { user: User },
-  ): Promise<Empty | { error: string }> {
-    try {
-      await this.initialize();
-      const produceFoodStudDoc = await this.users.findOne({
-        isProduceFoodStud: true,
-      });
-      const costcoFoodStudDoc = await this.users.findOne({
-        isCostcoFoodStud: true,
-      });
-      assertExists(produceFoodStudDoc, "Foodstuds not set");
-      assertExists(costcoFoodStudDoc, "Foodstuds not set");
-      const produceFoodStud = produceFoodStudDoc._id;
-      const costcoFoodStud = costcoFoodStudDoc._id;
-      assert(
-        user === produceFoodStud || user === costcoFoodStud,
-        "User is not a foodstud",
-      );
-      return {};
-    } catch (error) {
-      console.error(
-        "❌ Error verifying foodstud",
-        (error as Error).message,
-      );
-      return { error: (error as Error).message };
-    }
-  }
-
   async _isFoodStud(
     { user }: { user: User },
-  ): Promise<Array<{ isFoodStud: boolean }> | { error: string }> {
+  ): Promise<Array<{ isFoodStud: boolean }>> {
     await this.initialize();
     const produceFoodStudDoc = await this.users.findOne({
       isProduceFoodStud: true,
@@ -325,7 +269,7 @@ export default class UserAuthenticationConcept {
 
   async _isAdmin(
     { user }: { user: User },
-  ): Promise<Array<{ isAdmin: boolean }> | { error: string }> {
+  ): Promise<Array<{ isAdmin: boolean }>> {
     await this.initialize();
     const userDoc = await this.users.findOne({ isAdmin: true });
     assertExists(userDoc, "Admin not initialized");
@@ -333,7 +277,7 @@ export default class UserAuthenticationConcept {
   }
 
   async _getCostcoFoodStudKerb(): Promise<
-    Array<{ costcoFoodStudKerb: string }> | { error: string }
+    Array<{ costcoFoodStudKerb: string }>
   > {
     await this.initialize();
     const costcoFoodStudDoc = await this.users.findOne({
@@ -347,7 +291,7 @@ export default class UserAuthenticationConcept {
   }
 
   async _getProduceFoodStudKerb(): Promise<
-    Array<{ produceFoodStudKerb: string }> | { error: string }
+    Array<{ produceFoodStudKerb: string }>
   > {
     await this.initialize();
     const produceFoodStudDoc = await this.users.findOne({
@@ -361,7 +305,7 @@ export default class UserAuthenticationConcept {
   }
 
   async _getUsers(): Promise<
-    Array<{ user: User; kerb: string }> | { error: string }
+    Array<{ user: User; kerb: string }>
   > {
     const users = await this.users.find({ isAdmin: false }).toArray();
     const output: Array<{ user: User; kerb: string }> = [];
@@ -375,7 +319,7 @@ export default class UserAuthenticationConcept {
 
   async _getKerb(
     { user }: { user: User },
-  ): Promise<Array<{ kerb: string }> | { error: string }> {
+  ): Promise<Array<{ kerb: string }>> {
     const userDoc = await this.users.findOne({ _id: user });
     assertExists(userDoc, "User does not exist");
     return [{ kerb: userDoc.kerb }];
@@ -383,18 +327,18 @@ export default class UserAuthenticationConcept {
 
   async _getUser(
     { kerb }: { kerb: string },
-  ): Promise<Array<{ user: User }> | { error: string }> {
+  ): Promise<Array<{ user: User }>> {
     const userDoc = await this.users.findOne({ kerb: kerb, isAdmin: false });
     assertExists(userDoc);
     return [{ user: userDoc._id }];
   }
 
-  async _isLoggedIn(
-    { user }: { user: User },
-  ): Promise<Array<{ isLoggedIn: boolean }> | { error: string }> {
-    await this.initialize();
+  async _isUser({ user }: { user: User }): Promise<Array<{ isUser: boolean }>> {
     const userDoc = await this.users.findOne({ _id: user });
-    assertExists(userDoc, "User does not exist");
-    return [{ isLoggedIn: userDoc.isLoggedIn }];
+    if (userDoc) {
+      return [{ isUser: true }];
+    } else {
+      return [{ isUser: false }];
+    }
   }
 }
