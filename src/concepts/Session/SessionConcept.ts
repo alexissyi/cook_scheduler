@@ -33,7 +33,7 @@ export default class SessionConcept {
     { user }: { user: User },
   ): Promise<{ session: Session } | { error: string }> {
     try {
-      const session = freshID();
+      const session = freshID() as Session;
       await this.sessions.insertOne({ _id: session, user: user });
       return { session: session };
     } catch (error) {

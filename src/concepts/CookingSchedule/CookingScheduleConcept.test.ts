@@ -12,7 +12,6 @@ import {
 import { freshID, testDb } from "@utils/database.ts";
 import { User } from "./CookingScheduleConcept.ts";
 import CookingScheduleConcept from "./CookingScheduleConcept.ts";
-import { GeminiLLM } from "../../utils/gemini-llm.ts";
 
 /**
  * Test case 1: Manual scheduling
