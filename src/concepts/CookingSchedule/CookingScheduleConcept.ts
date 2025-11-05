@@ -378,6 +378,7 @@ export default class CookingScheduleConcept {
     { user, date }: { user: User; date: string },
   ): Promise<Empty | { error: string }> {
     try {
+      console.log(`Attempting to add availability for ${user} on ${date}`);
       const period = getPeriod(date);
       const matchingPeriod = await this.periods.findOne({ period: period });
       assertExists(matchingPeriod, `Period ${period} not registered`);

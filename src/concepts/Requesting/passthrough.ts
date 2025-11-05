@@ -26,10 +26,7 @@
 
 export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
-  "/api/CookingSchedule/deleteIncompatibleAssignments":
-    "allow anyone to delete assignments that violate constraints",
-  "/api/CookingSchedule/createPrompt":
-    "allow anyone to generate an LLM prompt using data that can already be publicly queried",
+
   "/api/CookingSchedule/_isRegisteredPeriod": "public query",
   "/api/CookingSchedule/_isCurrentPeriod": "public query",
   "/api/CookingSchedule/_isOpen": "public query",
@@ -44,8 +41,7 @@ export const inclusions: Record<string, string> = {
   "/api/CookingSchedule/_getPreference": "public query",
   "/api/CookingSchedule/_getCandidateCooks": "public query",
   "/api/CookingSchedule/_isAssigned": "public query",
-  "/api/UserAuthentication/initialize":
-    "allow anyone to initialize UserAuthentication, since it takes no parameters and has no requirements",
+
   "/api/UserAuthentication/uploadUser": "allow anyone to upload a user",
   "/api/UserAuthentication/_getCostcoFoodStudKerb": "public query",
   "/api/UserAuthentication/_getProduceFoodStudKerb": "public query",
@@ -55,14 +51,13 @@ export const inclusions: Record<string, string> = {
   "/api/UserAuthentication/_getUser": "public query",
   "/api/UserAuthentication/_getKerb": "public query",
   "/api/UserAuthentication/_isUser": "public query",
+
   "/api/Session/_getUser": "public query",
 
-  "/api/CookingSchedule/parseAndApplyAssignments": "",
+  // CookingSchedule user controls for syncs
   "/api/CookingSchedule/uploadPreference": "",
   "/api/CookingSchedule/addAvailability": "",
   "/api/CookingSchedule/removeAvailability": "",
-  "/api/Session/create": "",
-  "/api/Session/delete": "",
 };
 
 /**
@@ -77,6 +72,8 @@ export const inclusions: Record<string, string> = {
 
 export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
+
+  // UserAuthentication login and admin controls for syncs
   "/api/UserAuthentication/login",
   "/api/UserAuthentication/logout",
   "/api/UserAuthentication/removeUser",
@@ -85,6 +82,10 @@ export const exclusions: Array<string> = [
   "/api/UserAuthentication/setProduceFoodStud",
   "/api/UserAuthentication/setCostcoFoodStud",
 
+  // UserAuthentication helper functions that should never be exposed via api
+  "/api/UserAuthentication/initialize",
+
+  // CookingSchedule foodstud controls for syncs
   "/api/CookingSchedule/addCook",
   "/api/CookingSchedule/removeCook",
   "/api/CookingSchedule/addPeriod",
@@ -94,7 +95,6 @@ export const exclusions: Array<string> = [
   "/api/CookingSchedule/removeCookingDate",
   "/api/CookingSchedule/openPeriod",
   "/api/CookingSchedule/closePeriod",
-
   "/api/CookingSchedule/assignLead",
   "/api/CookingSchedule/assignAssistant",
   "/api/CookingSchedule/removeAssignment",
@@ -103,4 +103,13 @@ export const exclusions: Array<string> = [
   "/api/CookingSchedule/generateAssignments",
   "/api/CookingSchedule/generateAssignmentsWithLLM",
   "/api/CookingSchedule/clearAssignments",
+
+  // CookingSchedule helper functions that should never be exposed via api
+  "/api/CookingSchedule/deleteIncompatibleAssignments",
+  "/api/CookingSchedule/createPrompt",
+  "/api/CookingSchedule/parseAndApplyAssignments",
+
+  // Session session creation and deletion for syncs that should never be exposed via api
+  "/api/Session/create",
+  "/api/Session/delete",
 ];

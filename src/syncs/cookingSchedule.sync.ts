@@ -698,6 +698,7 @@ export const UploadPreferenceRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/uploadPreference",
+    session,
     user,
     period,
     canSolo,
@@ -756,6 +757,7 @@ export const AddAvailabilityRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/addAvailability",
+    session,
     user,
     date,
   }, {
@@ -806,6 +808,7 @@ export const RemoveAvailabilityRequest: Sync = (
 ) => ({
   when: actions([Requesting.request, {
     path: "/removeAvailability",
+    session,
     user,
     date,
   }, {
@@ -824,7 +827,7 @@ export const RemoveAvailabilityRequest: Sync = (
   }]),
 });
 
-export const RemovevailabilityResponseSuccess: Sync = ({ request }) => ({
+export const RemoveAvailabilityResponseSuccess: Sync = ({ request }) => ({
   when: actions(
     [Requesting.request, { path: "/removeAvailability" }, { request }],
     [CookingSchedule.removeAvailability, {}, {}],

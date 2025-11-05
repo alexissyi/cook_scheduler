@@ -1,0 +1,7 @@
+## Reflections
+
+I found concept design quite interesting and I've come to appreciate it as a foundational design strategy over time. 
+
+I avoided using LLMs for the most part, except for debugging, adding CSS styling, and getting the initial script for generating the calendar displays on my site. I wanted to learn as much of the syntax on my own as possible. I think this did hinder my pace on assignments, but overall I'm satisfied with this approach, since I don't think I would've learned as much if I didn't do it by hand. For example, I'm really comfortable with Vue.js and pinia stores now, but I still suck at CSS, and I think that just correlates with how much I used an LLM for each aspect. 
+
+LLMs seem very useful when you know exactly what you want to do and understand best practices around how to do it. This is something I learned over my summer internship, where my manager was having everyone on the team use LLMs. However, for learning, I find it to be more of a hindrance than a help if I use it for anything except debugging. I will continue to avoid using LLMs in the future if the goal is learning; I can see it becoming more useful once I'm more experienced and am focusing more on actually developing. 
