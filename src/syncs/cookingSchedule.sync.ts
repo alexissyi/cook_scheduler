@@ -712,7 +712,7 @@ export const UploadPreferenceRequest: Sync = (
     frames = await frames.query(Session._getUser, { session }, {
       user: actingUser,
     });
-    frames = frames.filter(($) => $[actingUser] === user);
+    frames = frames.filter(($) => $[actingUser] === $[user]);
     return frames;
   },
   then: actions([CookingSchedule.uploadPreference, {
@@ -767,7 +767,7 @@ export const AddAvailabilityRequest: Sync = (
     frames = await frames.query(Session._getUser, { session }, {
       user: actingUser,
     });
-    frames = frames.filter(($) => $[actingUser] === user);
+    frames = frames.filter(($) => $[actingUser] === $[user]);
     return frames;
   },
   then: actions([CookingSchedule.addAvailability, {
@@ -818,7 +818,7 @@ export const RemoveAvailabilityRequest: Sync = (
     frames = await frames.query(Session._getUser, { session }, {
       user: actingUser,
     });
-    frames = frames.filter(($) => $[actingUser] === user);
+    frames = frames.filter(($) => $[actingUser] === $[user]);
     return frames;
   },
   then: actions([CookingSchedule.removeAvailability, {
